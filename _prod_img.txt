@@ -1,0 +1,7 @@
+﻿const PROD_IMG={
+  'Claw Clip':'clips','Snap Clips':'clips',
+  'Scrunchie':'scrunchies',
+  'Wide Tooth Comb':'combs','Wide Tail Comb':'combs',
+  'Afro Comb':'combs','Cutting Comb':'combs','Plastic Brush':'combs',
+  'Headband':'headbands',
+};
