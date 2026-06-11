@@ -4,66 +4,121 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hairnique &mdash; Fly Your Hair. Proudly.</title>
+<title>Product &mdash; Hairnique</title>
 <meta name="description" content="Quality hair care products, tools, oils and accessories for your hair. Based in Lagos, Nigeria. Fly your hair. Proudly.">
 <link rel="stylesheet" href="shared.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="cart.js"></script>
 <style>
-/* â”€â”€ HOME-PAGE SPECIFIC EXTRAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-
-/* Section title bar layout */
-.sec-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  margin-bottom: 2.25rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+.product-page {
+  padding: calc(64px + 2rem) 5% 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
-.sec-head-text { max-width: 480px; }
-.view-all {
-  font-size: .86rem;
-  font-weight: 700;
-  color: var(--pink);
-  text-decoration: none;
+.breadcrumb {
   display: flex;
-  align-items: center;
-  gap: .35rem;
-  flex-shrink: 0;
-  transition: gap .18s;
-}
-.view-all:hover { gap: .6rem; }
-
-/* Shop section */
-#shop { background: var(--offwhite); }
-
-/* About */
-.about-section { background: var(--purple); }
-
-/* Community cards with larger padding */
-.community-content h2 { margin-bottom: .5rem; }
-.community-desc { color: var(--muted); font-size: .95rem; line-height: 1.75; margin-bottom: 1.5rem; }
-.community-join-pill {
-  display: inline-flex;
   align-items: center;
   gap: .45rem;
-  background: rgba(246,68,132,.08);
-  border: 1px solid rgba(246,68,132,.2);
-  color: var(--pink);
-  border-radius: 100px;
-  padding: .38rem .95rem;
-  font-size: .8rem;
-  font-weight: 600;
+  font-size: .82rem;
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
 }
+.breadcrumb a { color: var(--muted); transition: color .18s; }
+.breadcrumb a:hover { color: var(--pink); }
+.breadcrumb .sep { opacity: .45; }
+.product-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem;
+  align-items: start;
+}
+.pd-image {
+  position: sticky;
+  top: calc(64px + 1.5rem);
+  aspect-ratio: 1;
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--light);
+  box-shadow: 0 8px 40px rgba(40,16,63,.1);
+}
+.pd-image img { width: 100%; height: 100%; object-fit: cover; }
+.pd-emoji {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6rem;
+  background: linear-gradient(135deg, var(--light) 0%, #e0c8f8 100%);
+}
+.pd-info { display: flex; flex-direction: column; gap: 1.1rem; }
+.pd-category { font-size: .74rem; color: var(--pink); font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+.pd-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+  color: var(--purple);
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  margin: 0;
+}
+.pd-price-row { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; }
+.pd-price {
+  font-family: 'DM Serif Display', serif;
+  font-size: 2rem;
+  color: var(--purple);
+  line-height: 1;
+}
+.pd-compare { font-size: 1.1rem; color: var(--muted); text-decoration: line-through; }
+.pd-desc { font-size: .95rem; color: var(--muted); line-height: 1.82; }
+.pd-variant-section { }
+.pd-variant-header { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: .6rem; }
+.pd-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.pd-add-btn {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  background: var(--pink);
+  color: #fff;
+  border: none;
+  border-radius: 100px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .18s, box-shadow .18s, background .18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.pd-add-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(246,68,132,.38); }
+.pd-add-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+.pd-info-strip {
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+}
+.pd-info-strip div { font-size: .84rem; color: var(--muted); display: flex; align-items: flex-start; gap: .6rem; line-height: 1.5; }
+.related-section { margin-top: 4.5rem; }
+.related-section h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.6rem;
+  color: var(--purple);
+  margin-bottom: 1.25rem;
+}
+.error-state { text-align: center; padding: 5rem 1rem; }
+.error-state h2 { font-family: 'DM Serif Display', serif; color: var(--purple); margin-bottom: .5rem; }
 
-/* Contact section */
-.contact-title-area { margin-bottom: 2rem; }
-
-/* Responsive for 2-col edu grid */
 @media (max-width: 768px) {
-  .edu-grid { grid-template-columns: 1fr; }
-  .edu-card.featured { grid-column: 1; grid-template-columns: 1fr; }
+  .product-detail-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .pd-image { position: static; }
+  .pd-name { font-size: 1.7rem; }
 }
 </style>
 </head>
@@ -80,9 +135,9 @@
   <ul class="nav-links">
     <li><a href="index.html" data-nav="home">Home</a></li>
     <li><a href="shop.html" data-nav="shop">Shop</a></li>
-    <li><a href="#about">Our Story</a></li>
-    <li><a href="#education">Hair Tips</a></li>
-    <li><a href="#contact">Contact</a></li>
+    <li><a href="index.html#about">Our Story</a></li>
+    <li><a href="index.html#education">Hair Tips</a></li>
+    <li><a href="index.html#contact">Contact</a></li>
   </ul>
   <div class="nav-right">
     <button class="cart-btn" onclick="window.location.href='checkout.html'" aria-label="View cart">
@@ -97,293 +152,37 @@
 <nav class="mob-nav" id="mobNav" aria-label="Mobile navigation">
   <button class="mob-close" id="mobClose" aria-label="Close menu">&#x2715;</button>
   <a href="index.html" data-nav="home">Home</a>
-  <a href="shop.html">Shop</a>
-  <a href="#about">Our Story</a>
-  <a href="#education">Hair Tips</a>
-  <a href="#contact">Contact</a>
+  <a href="shop.html" data-nav="shop">Shop</a>
+  <a href="index.html#about">Our Story</a>
+  <a href="index.html#education">Hair Tips</a>
+  <a href="index.html#contact">Contact</a>
   <a href="checkout.html">Cart</a>
 </nav>
 
-<!-- â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section class="hero" id="hero" aria-label="Hero">
-  <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
-  <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
-  <div class="hero-content">
-    <div class="hero-tag">
-      <span>Natural Hair Care</span>
-    </div>
-    <h1 id="heroHeadline">Fly Your Hair. <em>Proudly.</em></h1>
-    <p class="hero-sub" id="heroSub">Quality products, honest education and a community for women with all hair types. Made for us, by us &mdash; right here in Lagos.</p>
-    <div class="hero-actions">
-      <a href="shop.html" class="btn-primary" id="heroCta">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.97-1.67L23 6H6"/></svg>
-        Shop All Products
-      </a>
-      <a href="#about" class="btn-ghost">Our Story</a>
-    </div>
-  </div>
-</section>
+<!-- PRODUCT PAGE -->
+<div class="product-page">
+  <!-- BREADCRUMB -->
+  <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+    <a href="shop.html">Shop</a>
+    <span class="sep">&rsaquo;</span>
+    <span id="breadCat"></span>
+    <span class="sep" id="breadSep2">&rsaquo;</span>
+    <span id="breadName">Loading...</span>
+  </nav>
 
-<!-- â”€â”€ MARQUEE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<div class="marquee-wrap" aria-hidden="true">
-  <div class="marquee-track">
-    <span class="mq-item">Natural Hair Care <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Curl &amp; Wave <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Quality Products <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Lagos Nigeria <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Fly Your Hair Proudly <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Hair Tools &amp; Accessories <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Natural Oils &amp; Ayurveda <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Hair Education <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Natural Hair Care <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Curl &amp; Wave <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Quality Products <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Lagos Nigeria <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Fly Your Hair Proudly <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Hair Tools &amp; Accessories <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Natural Oils &amp; Ayurveda <span class="dot">&#9733;</span></span>
-    <span class="mq-item">Hair Education <span class="dot">&#9733;</span></span>
+  <!-- PRODUCT DETAIL -->
+  <div id="productDetail">
+    <div class="loading-wrap"><div class="spinner"></div></div>
+  </div>
+
+  <!-- RELATED PRODUCTS -->
+  <div class="related-section" id="relatedSection" style="display:none">
+    <h3>You might also like</h3>
+    <div class="products-grid" id="relatedGrid"></div>
   </div>
 </div>
 
-<!-- â”€â”€ FEATURED PRODUCTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section id="shop">
-  <div class="sec-inner">
-    <div class="sec-head fade-up">
-      <div class="sec-head-text">
-        <span class="sec-tag">Our Products</span>
-        <h2>Made for <em>your hair</em></h2>
-        <p class="sec-sub">Every product is chosen with your hair in mind &mdash; so your curls can thrive.</p>
-      </div>
-      <a href="shop.html" class="view-all">View all products &rarr;</a>
-    </div>
-    <div class="products-grid" id="featuredGrid">
-      <div class="loading-wrap"><div class="spinner"></div></div>
-    </div>
-    <div style="text-align:center;margin-top:2rem">
-      <a href="shop.html" class="btn-primary">Browse All Products</a>
-    </div>
-  </div>
-</section>
-
-<!-- â”€â”€ ABOUT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section id="about" class="about-section">
-  <div class="sec-inner">
-    <div class="about-grid">
-      <!-- Quote -->
-      <div class="about-quote fade-up">
-        <span class="quote-mark">&ldquo;</span>
-        <p class="quote-text" id="aboutHeadline">Hairnique was born from the frustration of not finding quality products that truly understand our hair. So we built it ourselves.</p>
-        <div class="quote-author">
-          <div class="qa-av">E</div>
-          <div>
-            <div class="qa-name">Eniola Ogunmona</div>
-            <div class="qa-role">Founder, Hairnique</div>
-          </div>
-        </div>
-      </div>
-      <!-- Text -->
-      <div class="about-text fade-up" style="transition-delay:.12s">
-        <span class="sec-tag" style="color:var(--seafoam)">Our Story</span>
-        <h2 style="color:var(--white);margin-bottom:1rem">Built for <em>your hair</em></h2>
-        <p id="aboutBody">Hairnique is a Nigerian hair care brand dedicated to women who take their hair seriously. We believe every woman deserves quality products that work for her hair type &mdash; not against it.</p>
-        <p style="margin-top:.85rem">From sourcing the best hair tools to curating educational content that actually helps &mdash; everything we do is grounded in love for natural hair and the women who wear it proudly.</p>
-        <div class="about-pills">
-          <span class="pill">Quality Products</span>
-          <span class="pill">Hair Education</span>
-          <span class="pill">All Hair Welcome</span>
-          <span class="pill">Community Driven</span>
-          <span class="pill">Nigeria-Built</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- â”€â”€ EDUCATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section id="education">
-  <div class="sec-inner">
-    <div class="fade-up" style="margin-bottom:2.25rem">
-      <span class="sec-tag">Hair Tips</span>
-      <h2>Know your <em>hair</em></h2>
-      <p class="sec-sub">Real education for real natural hair. No gatekeeping here.</p>
-    </div>
-    <div class="edu-grid">
-      <!-- Featured card -->
-      <div class="edu-card featured fade-up">
-        <div>
-          <div class="edu-icon" style="background:rgba(10,243,188,.15)">&#129337;</div>
-          <div class="edu-title">Understanding Your Hair</div>
-          <div class="edu-desc">Whether your hair is coily, curly, wavy or somewhere in between &mdash; consistent moisture, gentle handling and the right products make all the difference.</div>
-        </div>
-        <div>
-          <div style="color:rgba(255,255,255,.5);font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.7rem">Key things to know</div>
-          <div class="edu-tips">
-            <div class="edu-tip">Every hair type has its own unique curl pattern and care needs</div>
-            <div class="edu-tip">Shrinkage is normal &mdash; your hair may be much longer than it looks</div>
-            <div class="edu-tip">Moisture retention is the foundation of healthy, thriving hair</div>
-            <div class="edu-tip">It thrives with gentle manipulation and protective styles</div>
-            <div class="edu-tip">Wide-tooth combs and detangling brushes are your best friends</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 2 -->
-      <div class="edu-card fade-up" style="transition-delay:.08s">
-        <div class="edu-icon" style="background:rgba(246,68,132,.1)">&#128167;</div>
-        <div class="edu-title">The LOC Method</div>
-        <div class="edu-desc">The LOC method (Liquid, Oil, Cream) is the gold standard for moisturising natural hair. Apply in order for maximum moisture retention and softer, more manageable hair.</div>
-        <div class="edu-tips" style="margin-top:.85rem">
-          <div class="edu-tip" style="color:var(--muted)"><strong>L</strong> &mdash; Liquid (water or leave-in conditioner)</div>
-          <div class="edu-tip" style="color:var(--muted)"><strong>O</strong> &mdash; Oil (seal the moisture in)</div>
-          <div class="edu-tip" style="color:var(--muted)"><strong>C</strong> &mdash; Cream (thick butter to lock everything in)</div>
-        </div>
-      </div>
-
-      <!-- Card 3 -->
-      <div class="edu-card fade-up" style="transition-delay:.14s">
-        <div class="edu-icon" style="background:rgba(10,243,188,.1)">&#127807;</div>
-        <div class="edu-title">Growing Natural Hair</div>
-        <div class="edu-desc">Natural hair grows at the same rate as any other hair type &mdash; the key is retaining length. Protective styles, minimal manipulation and consistent moisturising are the real secrets to long, flourishing hair.</div>
-      </div>
-
-      <!-- Card 4 -->
-      <div class="edu-card fade-up" style="transition-delay:.2s">
-        <div class="edu-icon" style="background:rgba(239,68,68,.08)">&#9940;</div>
-        <div class="edu-title">Ingredients to Avoid</div>
-        <div class="edu-desc">Some common ingredients can actually dry out or damage your hair. Watch out for: sulphates (in shampoos), mineral oil, petrolatum and alcohol-heavy products. Always read the label.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- â”€â”€ COMMUNITY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section id="community" style="background:var(--white)">
-  <div class="sec-inner">
-    <div class="community-grid">
-      <!-- Social cards -->
-      <div class="fade-up">
-        <span class="sec-tag">Find Us</span>
-        <h2>Join the <em>community</em></h2>
-        <p class="community-desc">We share hair tips, product updates, behind-the-scenes content and celebrate our community daily. Come hang out with us!</p>
-        <div class="social-cards">
-          <a href="https://instagram.com/hairnique.ng" class="social-card" target="_blank" rel="noopener">
-            <div class="si si-ig">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-            </div>
-            <div>
-              <div class="soc-name">Instagram</div>
-              <div class="soc-handle">@hairnique.ng</div>
-            </div>
-            <span class="soc-arrow">&#8594;</span>
-          </a>
-          <a href="https://tiktok.com/@hairnique" class="social-card" target="_blank" rel="noopener">
-            <div class="si si-tt">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>
-            </div>
-            <div>
-              <div class="soc-name">TikTok</div>
-              <div class="soc-handle">@hairnique</div>
-            </div>
-            <span class="soc-arrow">&#8594;</span>
-          </a>
-          <a href="https://wa.me/2348080081215" class="social-card" target="_blank" rel="noopener">
-            <div class="si si-wa">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            </div>
-            <div>
-              <div class="soc-name">WhatsApp</div>
-              <div class="soc-handle">Chat with us directly</div>
-            </div>
-            <span class="soc-arrow">&#8594;</span>
-          </a>
-        </div>
-      </div>
-      <!-- Community text -->
-      <div class="community-content fade-up" style="transition-delay:.12s">
-        <span class="sec-tag">Community</span>
-        <h2>A space where <em>all hair</em> is celebrated</h2>
-        <p class="community-desc" style="margin-bottom:1rem">
-          Our community is at the heart of everything we do. We share what we know, celebrate your wins and help you feel confident in your natural hair journey &mdash; no matter where you are in it.
-        </p>
-        <p class="community-desc">
-          From first big chop to long flourishing locs, every stage is beautiful. And we're here for all of it.
-        </p>
-        <div class="community-join-pill">
-          <span>&#127807;</span>
-          For Every Hair &bull; Naturally You
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- â”€â”€ CONTACT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<section id="contact">
-  <div class="sec-inner">
-    <div class="contact-title-area fade-up">
-      <span class="sec-tag">Get in Touch</span>
-      <h2>We&rsquo;d love to <em>hear from you</em></h2>
-    </div>
-    <div class="contact-grid">
-      <!-- Contact methods -->
-      <div class="fade-up">
-        <div class="contact-methods">
-          <a href="https://wa.me/2348080081215" class="contact-method" target="_blank" rel="noopener">
-            <div class="cm-icon green">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            </div>
-            <div>
-              <div class="cm-lbl">WhatsApp</div>
-              <div class="cm-val">+234 808 008 1215</div>
-            </div>
-          </a>
-          <a href="https://instagram.com/hairnique.ng" class="contact-method" target="_blank" rel="noopener">
-            <div class="cm-icon pink">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#F64484"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-            </div>
-            <div>
-              <div class="cm-lbl">Instagram</div>
-              <div class="cm-val">@hairnique.ng</div>
-            </div>
-          </a>
-          <a href="https://tiktok.com/@hairnique" class="contact-method" target="_blank" rel="noopener">
-            <div class="cm-icon dark">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#28103F"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1-.07z"/></svg>
-            </div>
-            <div>
-              <div class="cm-lbl">TikTok</div>
-              <div class="cm-val">@hairnique</div>
-            </div>
-          </a>
-        </div>
-      </div>
-
-      <!-- Contact form -->
-      <div class="contact-form fade-up" style="transition-delay:.12s">
-        <h3 style="font-family:'DM Serif Display',serif;color:var(--purple);font-size:1.2rem;margin-bottom:1.25rem">Send us a message</h3>
-        <form onsubmit="handleContact(event)" novalidate>
-          <div class="fg"><label for="contactName">Your Name *</label><input id="contactName" type="text" placeholder="Adaeze Okonkwo" required maxlength="100"></div>
-          <div class="fg"><label for="contactPhone">Phone <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label><input id="contactPhone" type="tel" placeholder="+234 800 000 0000" maxlength="20"></div>
-          <div class="fg">
-            <label for="contactTopic">Topic *</label>
-            <select id="contactTopic" required>
-              <option value="Order Enquiry">Order Enquiry</option>
-              <option value="Product Question">Product Question</option>
-              <option value="Wholesale / Bulk Order">Wholesale / Bulk Order</option>
-              <option value="Hair Advice">Hair Advice</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="fg"><label for="contactMsg">Message *</label><textarea id="contactMsg" placeholder="How can we help?" required maxlength="500"></textarea></div>
-          <button type="submit" class="form-submit">Send via WhatsApp &rarr;</button>
-        </form>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+<!-- FOOTER -->
 <footer>
   <div class="footer-inner">
     <div class="footer-top">
@@ -393,10 +192,10 @@
       </div>
       <div class="footer-links">
         <a href="shop.html">Shop</a>
-        <a href="#about">Our Story</a>
-        <a href="#education">Hair Tips</a>
-        <a href="#community">Community</a>
-        <a href="#contact">Contact</a>
+        <a href="index.html#about">Our Story</a>
+        <a href="index.html#education">Hair Tips</a>
+        <a href="index.html#community">Community</a>
+        <a href="index.html#contact">Contact</a>
       </div>
       <div class="footer-socials">
         <a href="https://instagram.com/hairnique.ng" target="_blank" rel="noopener" title="Instagram"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></a>
@@ -414,90 +213,195 @@
 <div class="toast" id="toast"></div>
 
 <script>
+var currentProduct = null;
+var selectedVariant = null;
+var selectedQty = 1;
+
 document.addEventListener('DOMContentLoaded', function() {
-  initNav('home');
-  initScrollAnim();
-  loadSiteContent();
-  loadFeatured();
+  initNav('shop');
+
+  var params = new URLSearchParams(window.location.search);
+  var productId = params.get('id');
+  if (!productId) { window.location.href = 'shop.html'; return; }
+  loadProduct(productId);
 });
 
-async function loadSiteContent() {
+async function loadProduct(id) {
+  var detail = document.getElementById('productDetail');
   try {
-    var result = await db.from('site_content').select('key,value');
-    if (!result.data) return;
-    var c = {};
-    result.data.forEach(function(i) { c[i.key] = i.value; });
+    var result = await db.from('products').select('*, variants(*)').eq('id', id).single();
+    var p = result.data;
+    var err = result.error;
+    if (err || !p) { window.location.href = 'shop.html'; return; }
 
-    if (c.hero_headline) document.getElementById('heroHeadline').innerHTML = c.hero_headline;
-    if (c.hero_subheadline) document.getElementById('heroSub').textContent = c.hero_subheadline;
-    if (c.hero_cta) document.getElementById('heroCta').querySelector('svg').insertAdjacentText('afterend', ' ' + c.hero_cta);
-    if (c.about_headline) document.getElementById('aboutHeadline').textContent = c.about_headline;
-    if (c.about_body) document.getElementById('aboutBody').textContent = c.about_body;
+    currentProduct = p;
+    document.title = esc(p.name) + ' \u2014 Hairnique';
+    document.querySelector('meta[name="description"]').content = (p.description || p.name) + ' \u2014 Hairnique';
 
-    if (c.promo_banner_active === 'true' && c.promo_banner_text) {
-      var banner = document.getElementById('promoBanner');
-      banner.textContent = c.promo_banner_text;
-      banner.classList.add('show');
+    // Breadcrumb
+    var breadCat = document.getElementById('breadCat');
+    var breadSep2 = document.getElementById('breadSep2');
+    var breadName = document.getElementById('breadName');
+    if (p.category) {
+      breadCat.innerHTML = '<a href="shop.html" style="color:var(--muted)">' + esc(p.category) + '</a>';
+    } else {
+      breadCat.style.display = 'none';
+      breadSep2.style.display = 'none';
     }
-  } catch(e) {}
+    breadName.textContent = p.name;
+
+    var activeV = (p.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
+
+    // Auto-select variant
+    if (activeV.length === 0) {
+      selectedVariant = { id: null, label: 'Default', retail_price: 0, stock: 999 };
+    } else if (activeV.length === 1) {
+      selectedVariant = activeV[0];
+    }
+
+    var imgHtml = p.image_url
+      ? '<img src="' + esc(p.image_url) + '" alt="' + esc(p.name) + '" loading="lazy">'
+      : '<div class="pd-emoji">' + (p.emoji || '\u2728') + '</div>';
+
+    var variantHtml = '';
+    if (activeV.length > 1) {
+      variantHtml = '<div class="pd-variant-section">' +
+        '<div class="pd-variant-header">Select Option</div>' +
+        '<div class="variant-grid">' +
+          activeV.map(function(v) {
+            var out = v.stock != null && v.stock <= 0;
+            return '<button class="variant-btn' + (out ? ' out' : '') + '" onclick="selectVariant(\'' + esc(v.id) + '\')" ' + (out ? 'disabled' : '') + '>' + esc(v.label) + '</button>';
+          }).join('') +
+        '</div></div>';
+    }
+
+    var initialPrice = selectedVariant ? fmt(selectedVariant.retail_price) : 'Select an option';
+    var compareHtml = (selectedVariant && selectedVariant.compare_at_price > selectedVariant.retail_price)
+      ? '<span class="pd-compare">' + fmt(selectedVariant.compare_at_price) + '</span>' : '';
+    var addDisabled = (activeV.length > 1) ? 'disabled' : '';
+    var addText = (activeV.length > 1) ? 'Select an option' : 'Add to Cart';
+
+    detail.innerHTML =
+      '<div class="product-detail-grid">' +
+        '<div class="pd-image">' + imgHtml + '</div>' +
+        '<div class="pd-info">' +
+          (p.category ? '<div class="pd-category">' + esc(p.category) + '</div>' : '') +
+          '<h1 class="pd-name">' + esc(p.name) + '</h1>' +
+          '<div class="pd-price-row">' +
+            '<div class="pd-price" id="pdPrice">' + initialPrice + '</div>' +
+            compareHtml +
+          '</div>' +
+          '<p class="pd-desc">' + esc(p.description || '') + '</p>' +
+          variantHtml +
+          '<div class="pd-qty-row">' +
+            '<div class="pm-qty">' +
+              '<button class="qty-btn" onclick="pdQty(-1)" aria-label="Decrease">\u2212</button>' +
+              '<span class="qty-val" id="pdQtyVal">1</span>' +
+              '<button class="qty-btn" onclick="pdQty(1)" aria-label="Increase">+</button>' +
+            '</div>' +
+            '<button class="pd-add-btn" id="pdAddBtn" onclick="pdAddToCart()" ' + addDisabled + '>' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>' +
+              '<span id="pdAddText">' + addText + '</span>' +
+            '</button>' +
+          '</div>' +
+          '<div class="pd-info-strip" id="pdInfoStrip"></div>' +
+        '</div>' +
+      '</div>';
+
+    // Load delivery + returns info
+    try {
+      var scResult = await db.from('site_content').select('key,value').in('key', ['delivery_info','returns_policy']);
+      if (scResult.data && scResult.data.length) {
+        var s = {}; scResult.data.forEach(function(i) { s[i.key] = i.value; });
+        var strip = document.getElementById('pdInfoStrip');
+        if (s.delivery_info) strip.innerHTML += '<div><span style="font-size:1.1rem">&#x1F69A;</span><span>' + esc(s.delivery_info) + '</span></div>';
+        if (s.returns_policy) strip.innerHTML += '<div><span style="font-size:1.1rem">&#x21A9;</span><span>' + esc(s.returns_policy) + '</span></div>';
+        if (!strip.innerHTML) strip.style.display = 'none';
+      } else {
+        document.getElementById('pdInfoStrip').style.display = 'none';
+      }
+    } catch(e) {
+      document.getElementById('pdInfoStrip').style.display = 'none';
+    }
+
+    // Load related products
+    if (p.category) loadRelated(p.id, p.category);
+
+  } catch(e) {
+    detail.innerHTML = '<div class="error-state"><h2>Oops!</h2><p style="color:var(--muted);margin:.5rem 0 1.5rem">Having trouble loading this product.</p><a href="shop.html" class="btn-primary">Return to Shop</a></div>';
+  }
 }
 
-async function loadFeatured() {
-  var grid = document.getElementById('featuredGrid');
+function selectVariant(variantId) {
+  var activeV = (currentProduct.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
+  selectedVariant = activeV.find(function(v) { return v.id === variantId; });
+  document.querySelectorAll('.variant-grid .variant-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+  document.getElementById('pdPrice').textContent = fmt(selectedVariant.retail_price);
+  var btn = document.getElementById('pdAddBtn');
+  btn.disabled = false;
+  document.getElementById('pdAddText').textContent = 'Add to Cart';
+}
+
+function pdQty(delta) {
+  selectedQty = Math.max(1, selectedQty + delta);
+  document.getElementById('pdQtyVal').textContent = selectedQty;
+}
+
+function pdAddToCart() {
+  if (!currentProduct) return;
+  var activeV = (currentProduct.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
+  if (activeV.length > 1 && !selectedVariant) { showToast('Please select an option first'); return; }
+  var v = selectedVariant || { id: null, label: 'Default', retail_price: 0 };
+  addToCart({
+    key: currentProduct.id + '_' + (v.id || 'default'),
+    product_id: currentProduct.id,
+    variant_id: v.id,
+    product_name: currentProduct.name,
+    variant_label: v.label,
+    retail_price: v.retail_price,
+    image_url: currentProduct.image_url,
+    emoji: currentProduct.emoji,
+    qty: selectedQty
+  });
+  showToast('\u2713 ' + currentProduct.name + ' added to cart', [
+    { href: 'shop.html', label: 'Continue Shopping' },
+    { href: 'checkout.html', label: 'View Cart \u2192' }
+  ], 5000);
+}
+
+async function loadRelated(currentId, category) {
   try {
     var result = await db.from('products')
       .select('*, variants(*)')
       .eq('is_active', true)
-      .order('created_at', { ascending: false })
+      .eq('category', category)
+      .neq('id', currentId)
       .limit(4);
-
     var data = result.data || [];
-    if (!data.length) {
-      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:3rem 0">Products coming soon! Check back later.</p>';
-      return;
-    }
+    if (!data.length) return;
 
+    var section = document.getElementById('relatedSection');
+    section.style.display = 'block';
+    var grid = document.getElementById('relatedGrid');
     grid.innerHTML = data.map(function(p) {
       var activeV = (p.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
       var prices = activeV.map(function(v) { return v.retail_price; }).filter(function(x) { return x != null && x >= 0; });
       var minPrice = prices.length ? Math.min.apply(null, prices) : 0;
       var priceStr = prices.length > 1 ? 'from ' + fmt(minPrice) : fmt(minPrice);
-      var hasSale = activeV.some(function(v) { return v.compare_at_price && v.compare_at_price > v.retail_price; });
       var imgHtml = renderProductImg(p.name, p.category, p.image_url, p.emoji);
-
-      return '<div class="product-card" onclick="window.location.href=\'product.html?id=' + esc(p.id) + '\'" role="button" tabindex="0" aria-label="' + esc(p.name) + '">' +
-        '<div class="product-img">' +
-          imgHtml +
-          (p.category ? '<span class="cat-badge">' + esc(p.category) + '</span>' : '') +
-          (hasSale ? '<span class="sale-badge">Sale</span>' : '') +
-        '</div>' +
+      return '<div class="product-card" onclick="window.location.href=\'product.html?id=' + esc(p.id) + '\'" role="button" tabindex="0">' +
+        '<div class="product-img">' + imgHtml + '</div>' +
         '<div class="product-body">' +
           '<div class="product-name">' + esc(p.name) + '</div>' +
-          '<div class="product-desc">' + esc(p.description || '') + '</div>' +
           '<div class="product-footer">' +
             '<span class="price-current">' + priceStr + '</span>' +
-            '<button class="add-btn" onclick="event.stopPropagation();window.location.href=\'product.html?id=' + esc(p.id) + '\'" aria-label="View ' + esc(p.name) + '">+</button>' +
+            '<button class="add-btn" onclick="event.stopPropagation();window.location.href=\'product.html?id=' + esc(p.id) + '\'" aria-label="View">+</button>' +
           '</div>' +
         '</div>' +
       '</div>';
     }).join('');
-  } catch(e) {
-    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:3rem 0">Having trouble loading products. Please refresh the page.</p>';
-  }
-}
-
-function handleContact(e) {
-  e.preventDefault();
-  var name = sanitizeInput(document.getElementById('contactName').value, 100);
-  var phone = sanitizeInput(document.getElementById('contactPhone').value, 20);
-  var topic = document.getElementById('contactTopic').value;
-  var msg = sanitizeInput(document.getElementById('contactMsg').value, 500);
-  if (!name) { showToast('Please enter your name'); return; }
-  if (!msg) { showToast('Please write your message'); return; }
-  var text = 'Hi Hairnique! My name is ' + name +
-    (phone ? ', my number is ' + phone : '') +
-    '. Re: ' + topic + '. \n\n' + msg;
-  window.open('https://wa.me/2348080081215?text=' + encodeURIComponent(text), '_blank');
+  } catch(e) {}
 }
 </script>
 </body>
