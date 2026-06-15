@@ -687,6 +687,7 @@ tr:hover td{background:#faf5ff}
           </div>
         </div>
         <div id="plTable"></div>
+        <div id="productSalesTable" style="margin-top:1.5rem"></div>
       </div>
 
       <!-- BLOG -->
@@ -1170,10 +1171,15 @@ function changePw(){
   toast('Password updated','success');
   ['curPw','newPw','cfPw'].forEach(id=>document.getElementById(id).value='');
 }
-function saveSettings(){
+async function saveSettings(){
   const ps=document.getElementById('settingPaystack').value.trim();
   const re=document.getElementById('settingResend').value.trim();
-  if(ps)localStorage.setItem('hq_ps',ps);
+  if(ps){
+    localStorage.setItem('hq_ps',ps);
+    await db.from('site_content')
+      .update({value:ps,updated_at:new Date().toISOString()})
+      .eq('key','paystack_public_key');
+  }
   if(re)localStorage.setItem('hq_resend',re);
   toast('Settings saved','success');
 }
@@ -1187,9 +1193,16 @@ if(localStorage.getItem('hq_auth')){
 async function initApp(){
   document.getElementById('topbarDate').textContent=
     new Date().toLocaleDateString('en-NG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('settingPaystack').value=
-    localStorage.getItem('hq_ps')||'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153';
   document.getElementById('settingWA').value=WA_NUM;
+  // Load Paystack key from DB first, fallback to localStorage
+  try {
+    const {data:psData}=await db.from('site_content').select('value').eq('key','paystack_public_key').single();
+    document.getElementById('settingPaystack').value=
+      (psData&&psData.value)?psData.value:(localStorage.getItem('hq_ps')||'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153');
+  } catch(e) {
+    document.getElementById('settingPaystack').value=
+      localStorage.getItem('hq_ps')||'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153';
+  }
   await loadDashboard();
 }
 
@@ -1360,7 +1373,7 @@ async function updateStatus(id,status,el,phone,name,orderNum,email){
     confirmed:`Hi ${name}! 🌿 Your Hairnique order ${orderNum} is confirmed. We're getting it ready!`,
     processing:`Hi ${name}! 📦 Your Hairnique order ${orderNum} is being packed for dispatch.`,
     shipped:`Hi ${name}! 🚚 Your Hairnique order ${orderNum} is on its way!`,
-    delivered:`Hi ${name}! 🌟 Your Hairnique order ${orderNum} has been delivered. We'd love your feedback: https://hairnique.netlify.app?page=feedback&order=${orderNum}`,
+    delivered:`Hi ${name}! 🌟 Your Hairnique order ${orderNum} has been delivered. We'd love your feedback: https://hairnique.vercel.app/feedback.html?order=${orderNum}`,
     cancelled:`Hi ${name}, your Hairnique order ${orderNum} has been cancelled. Please reach out if you have questions. 💬`
   };
   if(msgs[status]&&confirm(`Send WhatsApp to ${name} about "${status}"?`)){
@@ -2006,8 +2019,39 @@ async function loadReports(){
         '<tr class="empty-row"><td colspan="5">No data yet</td></tr>'}
       </tbody></table></div>
     </div>`;
+  await loadProductSales();
 }
 
+async function loadProductSales() {
+  const { data } = await db.from('product_sales').select('*');
+  const container = document.getElementById('productSalesTable');
+  if (!container) return;
+  if (!data || !data.length) {
+    container.innerHTML = '<p style="color:var(--muted);padding:.75rem 0">No sales data yet</p>';
+    return;
+  }
+  container.innerHTML = `
+    <div class="table-card" style="margin-top:0">
+      <div class="table-header">
+        <span class="table-title" style="font-family:'DM Serif Display',serif;font-size:1rem">Product Performance</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Product</th><th>Orders</th><th>Units Sold</th><th>Revenue</th>
+          </tr></thead>
+          <tbody>
+            ${data.map(row => `<tr>
+              <td>${esc(row.product_name || '')}</td>
+              <td style="text-align:center">${row.order_count || 0}</td>
+              <td style="text-align:center">${row.total_qty_sold || 0}</td>
+              <td style="font-weight:700;color:var(--green)">${fmt(row.total_revenue || 0)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
 /* BLOG */
 async function loadBlog(){
   const{data}=await db.from('blog_posts').select('*').order('created_at',{ascending:false});
