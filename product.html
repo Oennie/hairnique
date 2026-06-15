@@ -96,6 +96,7 @@
 }
 .pd-add-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(246,68,132,.38); }
 .pd-add-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-sold-out{background:#e5e7eb!important;color:#9ca3af!important;cursor:not-allowed;pointer-events:none}
 .pd-info-strip {
   border: 1.5px solid var(--border);
   border-radius: 14px;
@@ -250,13 +251,18 @@ async function loadProduct(id) {
     }
     breadName.textContent = p.name;
 
-    var activeV = (p.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
+    var allVariants = (p.variants || []).filter(function(v) { return v.is_active !== false; });
+    var activeV     = allVariants.filter(function(v) { return v.is_purchasable !== false && (v.stock == null || v.stock > 0); });
+    var allSoldOut  = allVariants.length > 0 && activeV.length === 0;
 
-    // Auto-select variant
-    if (activeV.length === 0) {
+    // Auto-select variant (only in-stock)
+    if (activeV.length === 0 && allVariants.length === 0) {
       selectedVariant = { id: null, label: 'Default', retail_price: 0, stock: 999 };
     } else if (activeV.length === 1) {
       selectedVariant = activeV[0];
+    } else if (activeV.length === 0 && allVariants.length > 0) {
+      // All sold out — show first variant info but don't select as purchasable
+      selectedVariant = null;
     }
 
     var imgHtml = p.image_url
@@ -269,8 +275,8 @@ async function loadProduct(id) {
         '<div class="pd-variant-header">Select Option</div>' +
         '<div class="variant-grid">' +
           activeV.map(function(v) {
-            var out = v.stock != null && v.stock <= 0;
-            return '<button class="variant-btn' + (out ? ' out' : '') + '" onclick="selectVariant(\'' + esc(v.id) + '\')" ' + (out ? 'disabled' : '') + '>' + esc(v.label) + '</button>';
+            var out = !v.is_purchasable || (v.stock != null && v.stock <= 0);
+            return '<button class="variant-btn' + (out ? ' out' : '') + '" onclick="' + (out ? '' : 'selectVariant(\'' + esc(v.id) + '\')') + '" ' + (out ? 'disabled title="Out of stock"' : '') + '>' + esc(v.label) + (out ? ' <em style="font-size:.75em;opacity:.65">(Out)</em>' : '') + '</button>';
           }).join('') +
         '</div></div>';
     }
@@ -278,8 +284,8 @@ async function loadProduct(id) {
     var initialPrice = selectedVariant ? fmt(selectedVariant.retail_price) : 'Select an option';
     var compareHtml = (selectedVariant && selectedVariant.compare_at_price > selectedVariant.retail_price)
       ? '<span class="pd-compare">' + fmt(selectedVariant.compare_at_price) + '</span>' : '';
-    var addDisabled = (activeV.length > 1) ? 'disabled' : '';
-    var addText = (activeV.length > 1) ? 'Select an option' : 'Add to Cart';
+    var addDisabled = (allSoldOut || activeV.length > 1) ? 'disabled' : '';
+    var addText = allSoldOut ? 'Sold Out' : (activeV.length > 1 ? 'Select an option' : 'Add to Cart');
 
     detail.innerHTML =
       '<div class="product-detail-grid">' +
@@ -385,7 +391,9 @@ async function loadRelated(currentId, category) {
     section.style.display = 'block';
     var grid = document.getElementById('relatedGrid');
     grid.innerHTML = data.map(function(p) {
-      var activeV = (p.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
+      var allVariants = (p.variants || []).filter(function(v) { return v.is_active !== false; });
+    var activeV     = allVariants.filter(function(v) { return v.is_purchasable !== false && (v.stock == null || v.stock > 0); });
+    var allSoldOut  = allVariants.length > 0 && activeV.length === 0;
       var prices = activeV.map(function(v) { return v.retail_price; }).filter(function(x) { return x != null && x >= 0; });
       var minPrice = prices.length ? Math.min.apply(null, prices) : 0;
       var priceStr = prices.length > 1 ? 'from ' + fmt(minPrice) : fmt(minPrice);

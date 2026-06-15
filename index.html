@@ -427,17 +427,36 @@ async function loadSiteContent() {
     if (!result.data) return;
     var c = {};
     result.data.forEach(function(i) { c[i.key] = i.value; });
-
-    if (c.hero_headline) document.getElementById('heroHeadline').innerHTML = c.hero_headline;
-    if (c.hero_subheadline) document.getElementById('heroSub').textContent = c.hero_subheadline;
-    if (c.hero_cta) document.getElementById('heroCta').querySelector('svg').insertAdjacentText('afterend', ' ' + c.hero_cta);
-    if (c.about_headline) document.getElementById('aboutHeadline').textContent = c.about_headline;
-    if (c.about_body) document.getElementById('aboutBody').textContent = c.about_body;
-
-    if (c.promo_banner_active === 'true' && c.promo_banner_text) {
+    if (c.hero_headline && c.hero_headline.trim()) {
+      var elH = document.getElementById('heroHeadline');
+      if (elH) elH.innerHTML = esc(c.hero_headline);
+    }
+    if (c.hero_subheadline && c.hero_subheadline.trim()) {
+      var elS = document.getElementById('heroSub');
+      if (elS) elS.textContent = c.hero_subheadline;
+    }
+    if (c.hero_cta && c.hero_cta.trim()) {
+      var elC = document.getElementById('heroCta');
+      if (elC) elC.textContent = c.hero_cta;
+    }
+    if (c.about_headline && c.about_headline.trim()) {
+      var elA = document.getElementById('aboutHeadline');
+      if (elA) elA.innerHTML = esc(c.about_headline);
+    }
+    if (c.about_body && c.about_body.trim()) {
+      var elB = document.getElementById('aboutBody');
+      if (elB) {
+        var paras = c.about_body.split('\n').filter(function(p) { return p.trim(); });
+        elB.innerHTML = paras.map(function(p) { return '<p>' + esc(p) + '</p>'; }).join('');
+      }
+    }
+    if (c.footer_tagline && c.footer_tagline.trim()) {
+      var elFT = document.getElementById('footerTagline');
+      if (elFT) elFT.textContent = c.footer_tagline;
+    }
+    if (c.promo_banner_active === 'true' && c.promo_banner_text && c.promo_banner_text.trim()) {
       var banner = document.getElementById('promoBanner');
-      banner.textContent = c.promo_banner_text;
-      banner.classList.add('show');
+      if (banner) { banner.textContent = c.promo_banner_text; banner.classList.add('show'); }
     }
   } catch(e) {}
 }

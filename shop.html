@@ -99,7 +99,7 @@
   <div class="shop-hero-inner">
     <span class="sec-tag">All Products</span>
     <h1>Shop <em>Hairnique</em></h1>
-    <p class="shop-hero-sub" id="productCount">Loading products...</p>
+    <p class="shop-hero-sub" id="productCount" style="display:none">Loading products...</p>
   </div>
 </div>
 
@@ -256,25 +256,28 @@ function renderProducts() {
   }
 
   grid.innerHTML = filtered.map(function(p) {
-    var activeV = (p.variants || []).filter(function(v) { return v.is_active !== false && v.is_purchasable !== false; });
-    var prices = activeV.map(function(v) { return v.retail_price; }).filter(function(x) { return x != null && x >= 0; });
+    var variants  = (p.variants || []).filter(function(v) { return v.is_active !== false; });
+    var activeV   = variants.filter(function(v) { return v.is_purchasable !== false && (v.stock == null || v.stock > 0); });
+    var isSoldOut = variants.length > 0 && activeV.length === 0;
+    var priceSrc  = activeV.length ? activeV : variants;
+    var prices = priceSrc.map(function(v) { return v.retail_price; }).filter(function(x) { return x != null && x >= 0; });
     var minPrice = prices.length ? Math.min.apply(null, prices) : 0;
     var priceStr = prices.length > 1 ? 'from ' + fmt(minPrice) : fmt(minPrice);
-    var hasSale = activeV.some(function(v) { return v.compare_at_price && v.compare_at_price > v.retail_price; });
+    var hasSale = !isSoldOut && activeV.some(function(v) { return v.compare_at_price && v.compare_at_price > v.retail_price; });
     var imgHtml = renderProductImg(p.name, p.category, p.image_url, p.emoji);
 
     return '<div class="product-card" onclick="openPM(\'' + esc(p.id) + '\')" role="button" tabindex="0" aria-label="' + esc(p.name) + '">' +
       '<div class="product-img">' +
         imgHtml +
         (p.category ? '<span class="cat-badge">' + esc(p.category) + '</span>' : '') +
-        (hasSale ? '<span class="sale-badge">Sale</span>' : '') +
+        (isSoldOut ? '<span class="badge-sold-out">Sold Out</span>' : (hasSale ? '<span class="sale-badge">Sale</span>' : '')) +
       '</div>' +
       '<div class="product-body">' +
         '<div class="product-name">' + esc(p.name) + '</div>' +
         '<div class="product-desc">' + esc(p.description || '') + '</div>' +
         '<div class="product-footer">' +
           '<span class="price-current">' + priceStr + '</span>' +
-          '<button class="add-btn" onclick="event.stopPropagation();openPM(\'' + esc(p.id) + '\')" aria-label="Add ' + esc(p.name) + '">+</button>' +
+          (isSoldOut ? '<button class="add-btn btn-sold-out" disabled aria-label="Sold out">Sold Out</button>' : '<button class="add-btn" onclick="event.stopPropagation();openPM(\'' + esc(p.id) + '\')" aria-label="Add ' + esc(p.name) + '">+</button>') +
         '</div>' +
       '</div>' +
     '</div>';
