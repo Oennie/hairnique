@@ -484,9 +484,13 @@ var allZones = [];
 var buyerName = '', buyerPhone = '', buyerEmail = '', buyerAddress = '';
 var _paying = false;
 
-var PAYSTACK_KEY = 'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153';
-// Switch to live key when ready:
-// var PAYSTACK_KEY = 'pk_live_4925874db381b69ad81021d1ee54b3a6738b96d2';
+// Paystack key loaded from site_content database row
+async function getPaystackKey() {
+  try {
+    var r = await db.from('site_content').select('value').eq('key','paystack_public_key').single();
+    return (r.data && r.data.value) ? r.data.value : 'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153';
+  } catch(e) { return 'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153'; }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   initNav('checkout');
@@ -716,7 +720,7 @@ function goToState3() {
 }
 
 // â”€â”€ PAYSTACK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function initiatePayment() {
+async function initiatePayment() {
   if (!cart.length) { showToast('Your cart is empty'); return; }
   var subtotal = calcSubtotal();
   var total = Math.max(0, subtotal + deliveryFee - discountAmount);
@@ -736,8 +740,9 @@ function initiatePayment() {
     + Date.now().toString(36).slice(-3).toUpperCase();
 
   try {
+    var paystackKey = await getPaystackKey();
     var handler = PaystackPop.setup({
-      key: PAYSTACK_KEY,
+      key: paystackKey,
       email: buyerEmail,
       amount: Math.round(total * 100),
       currency: 'NGN',
@@ -824,7 +829,7 @@ async function saveOrder(orderNum, paystackRef, subtotal, total) {
   try {
     await db.from('customers').upsert(
       { name: buyerName, phone: buyerPhone, email: buyerEmail, address: buyerAddress },
-      { onConflict: 'phone', ignoreDuplicates: false }
+      { onConflict: 'email', ignoreDuplicates: false }
     );
   } catch(e) {}
 
