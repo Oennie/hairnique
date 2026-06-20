@@ -1,0 +1,10 @@
+<!-- MOBILE NAV -->
+<nav class="mob-nav" id="mobileNav" id="mobileNav" aria-label="Mobile navigation">
+  <button class="mob-close" id="mobClose" aria-label="Close menu">&#x2715;</button>
+  <a href="index.html" data-nav="home">Home</a>
+  <a href="shop.html">Shop</a>
+  <a href="#about">Our Story</a>
+  <a href="#education">Hair Tips</a>
+  <a href="#contact">Contact</a>
+  <a href="checkout.html">Cart</a>
+</nav>

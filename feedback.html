@@ -4,8 +4,8 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>How was your order? — Hairnique</title>
-<meta name="description" content="Share your feedback about your Hairnique order.">
+<title>Leave Feedback - Hairnique</title>
+<meta name="description" content="Share your experience with Hairnique. Your feedback helps us improve.">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -189,15 +189,30 @@ body {
   color: rgba(40,16,63,.35);
 }
 .fb-footer a { color: #F64484; text-decoration: none; }
-</style>
+.skip-link{position:absolute;top:-40px;left:0;background:#28103F;color:#fff;padding:.5rem 1.25rem;text-decoration:none;font-weight:700;font-size:.85rem;z-index:9999;border-radius:0 0 8px 0;transition:top .15s}
+.skip-link:focus{top:0}</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://vtmulueztugoaotouqza.supabase.co">
+  <link rel="dns-prefetch" href="https://js.paystack.co">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">  <link rel="canonical" href="https://hairnique.vercel.app/feedback.html">
+  <meta name="robots" content="noindex, nofollow">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hairnique.vercel.app/feedback.html">
+  <meta property="og:title" content="Leave Feedback - Hairnique">
+  <meta property="og:image" content="https://hairnique.vercel.app/og-image.png">
+  <meta property="og:site_name" content="Hairnique">
 </head>
 <body>
 
+<a href="#main-content" class="skip-link">Skip to main content</a>
 <div class="feedback-logo">
   <div class="brand-mark">H</div>
 </div>
 
-<div class="feedback-card">
+<main id="main-content"><div class="feedback-card">
   <!-- FEEDBACK FORM -->
   <div id="feedbackForm">
     <div class="fb-header">
@@ -208,22 +223,23 @@ body {
 
     <!-- STARS -->
     <div class="star-row" role="group" aria-label="Star rating">
-      <button class="star-btn" onclick="setStar(1)" aria-label="1 star">&#9733;</button>
-      <button class="star-btn" onclick="setStar(2)" aria-label="2 stars">&#9733;</button>
-      <button class="star-btn" onclick="setStar(3)" aria-label="3 stars">&#9733;</button>
-      <button class="star-btn" onclick="setStar(4)" aria-label="4 stars">&#9733;</button>
-      <button class="star-btn" onclick="setStar(5)" aria-label="5 stars">&#9733;</button>
+      <button class="star-btn" id="star1" onclick="setStar(1)" aria-label="Rate 1 out of 5 stars" aria-pressed="false">&#9733;</button>
+      <button class="star-btn" id="star2" onclick="setStar(2)" aria-label="Rate 2 out of 5 stars" aria-pressed="false">&#9733;</button>
+      <button class="star-btn" id="star3" onclick="setStar(3)" aria-label="Rate 3 out of 5 stars" aria-pressed="false">&#9733;</button>
+      <button class="star-btn" id="star4" onclick="setStar(4)" aria-label="Rate 4 out of 5 stars" aria-pressed="false">&#9733;</button>
+      <button class="star-btn" id="star5" onclick="setStar(5)" aria-label="Rate 5 out of 5 stars" aria-pressed="false">&#9733;</button>
     </div>
     <div class="star-label" id="starLabel">Tap to rate your experience</div>
 
     <!-- COMMENT -->
     <div class="fg">
       <label for="feedbackComment">Tell us more <span style="font-weight:400;color:rgba(122,106,138,.7);text-transform:none;letter-spacing:0">(optional)</span></label>
-      <textarea id="feedbackComment" placeholder="What did you love? What can we improve?" maxlength="500"></textarea>
+      <label for="feedbackComment" class="fg" style="font-size:.74rem;font-weight:700;color:#7a6a8a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.38rem;display:block">Tell us more <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+<textarea id="feedbackComment" aria-describedby="feedbackComment" placeholder="What did you love? What can we improve?" maxlength="500"></textarea>
     </div>
 
-    <div class="err-msg" id="err"></div>
-    <button class="submit-btn" id="submitBtn" onclick="submitFeedback()">Submit Feedback</button>
+    <div class="err-msg" id="err" role="alert" aria-live="assertive"></div>
+    <button class="submit-btn" id="submitBtn" onclick="submitFeedback()" aria-describedby="err">Submit Feedback</button>
   </div>
 
   <!-- THANK YOU -->
@@ -235,6 +251,7 @@ body {
   </div>
 </div>
 
+</main>
 <div class="fb-footer">
   <a href="index.html">hairnique.ng</a> &bull; Lagos, Nigeria &bull; Fly Your Hair. Proudly.
 </div>
@@ -261,17 +278,12 @@ function setStar(n) {
   selectedRating = n;
   var stars = document.querySelectorAll('.star-btn');
   stars.forEach(function(btn, i) {
-    if (i < n) {
-      btn.textContent = '\u2605';
-      btn.classList.add('lit');
-      btn.style.opacity = '1';
-      btn.style.color = '#F64484';
-    } else {
-      btn.textContent = '\u2606';
-      btn.classList.remove('lit');
-      btn.style.opacity = '.3';
-      btn.style.color = '';
-    }
+    var active = i < n;
+    btn.innerHTML = active ? '&#9733;' : '&#9734;';
+    btn.classList.toggle('lit', active);
+    btn.style.opacity = active ? '1' : '.3';
+    btn.style.color   = active ? '#F64484' : '';
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
   document.getElementById('starLabel').textContent = STAR_LABELS[n] || '';
   document.getElementById('err').textContent = '';
@@ -318,5 +330,14 @@ async function submitFeedback() {
   }
 }
 </script>
+
+<div style="text-align:center;padding:1.5rem 5%;border-top:1px solid #f0ebf8;margin-top:2rem">
+  <div style="display:flex;gap:1.25rem;justify-content:center;flex-wrap:wrap;font-size:.8rem">
+    <a href="/legal" style="color:var(--muted);text-decoration:none">Terms &amp; Conditions</a>
+    <a href="/legal#privacy" style="color:var(--muted);text-decoration:none">Privacy Policy</a>
+    <a href="/legal#fulfilment" style="color:var(--muted);text-decoration:none">Shipping &amp; Returns</a>
+    <a href="/legal#disclaimer" style="color:var(--muted);text-decoration:none">Product Disclaimer</a>
+  </div>
+</div>
 </body>
 </html>

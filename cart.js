@@ -50,9 +50,12 @@ function getCartCount() {
 function updateNavCartCount() {
   const count = getCartCount();
   const el = document.getElementById('cartCount');
-  if (!el) return;
-  el.textContent = count;
-  el.style.display = count > 0 ? 'flex' : 'none';
+  if (el) {
+    el.textContent = count;
+    el.style.display = count > 0 ? 'flex' : 'none';
+  }
+  const btn = document.getElementById('cartBtn');
+  if (btn) btn.setAttribute('aria-label', `Shopping cart, ${count} item${count === 1 ? '' : 's'}`);
 }
 function addToCart(item) {
   const cart = getCart();
@@ -118,7 +121,11 @@ function showToast(msg, actions = null, duration = 3500) {
   let html = esc(msg);
   if (actions) {
     actions.forEach(a => {
-      html += ` <a href="${esc(a.href)}" class="toast-action">${esc(a.label)}</a>`;
+      if (a.onclick) {
+        html += ` <a href="#" class="toast-action" onclick="${esc(a.onclick)};return false">${esc(a.label)}</a>`;
+      } else {
+        html += ` <a href="${esc(a.href)}" class="toast-action">${esc(a.label)}</a>`;
+      }
     });
   }
   t.innerHTML = html;
@@ -140,21 +147,36 @@ const SVG_CART = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 // Call this on DOMContentLoaded on every page.
 // activePage: 'home' | 'shop' | null
 function initNav(activePage) {
-  // Bind hamburger
+  // Bind hamburger with aria-expanded
   const ham = document.getElementById('hamBtn');
   const mobNav = document.getElementById('mobNav');
   const mobClose = document.getElementById('mobClose');
   if (ham && mobNav) {
-    ham.addEventListener('click', () => mobNav.classList.toggle('open'));
+    ham.addEventListener('click', () => {
+      const isOpen = mobNav.classList.toggle('open');
+      ham.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
   }
   if (mobClose && mobNav) {
-    mobClose.addEventListener('click', () => mobNav.classList.remove('open'));
+    mobClose.addEventListener('click', () => {
+      mobNav.classList.remove('open');
+      if (ham) ham.setAttribute('aria-expanded', 'false');
+    });
   }
   // Close on link click inside mobile nav
   if (mobNav) {
     mobNav.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', () => mobNav.classList.remove('open'));
+      a.addEventListener('click', () => {
+        mobNav.classList.remove('open');
+        if (ham) ham.setAttribute('aria-expanded', 'false');
+      });
     });
+  }
+  // Wire cart button to openCart (not navigate)
+  const cartBtn = document.getElementById('cartBtn');
+  if (cartBtn) {
+    cartBtn.onclick = null;
+    cartBtn.addEventListener('click', (e) => { e.preventDefault(); openCart(); });
   }
   // Highlight active nav link
   if (activePage) {
@@ -174,4 +196,145 @@ function initScrollAnim() {
     });
   }, { threshold: 0.1 });
   document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+}
+
+// ── CART DRAWER ────────────────────────────────────────────────
+
+function trapFocus(element) {
+  const focusable = element.querySelectorAll(
+    'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  element._trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+  element.addEventListener('keydown', element._trapHandler);
+}
+function releaseFocus(element) {
+  if (element._trapHandler) element.removeEventListener('keydown', element._trapHandler);
+}
+
+function openCart() {
+  const drawer  = document.getElementById('cartDrawer');
+  const overlay = document.getElementById('cartOverlay');
+  if (!drawer) return;
+  renderCart();
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  if (overlay) { overlay.classList.add('open'); overlay.setAttribute('aria-hidden', 'false'); }
+  document.body.style.overflow = 'hidden';
+  trapFocus(drawer);
+  setTimeout(() => { drawer.querySelector('.cart-close')?.focus(); }, 80);
+}
+
+function closeCart() {
+  const drawer  = document.getElementById('cartDrawer');
+  const overlay = document.getElementById('cartOverlay');
+  if (!drawer) return;
+  releaseFocus(drawer);
+  drawer.classList.remove('open');
+  drawer.setAttribute('aria-hidden', 'true');
+  if (overlay) { overlay.classList.remove('open'); overlay.setAttribute('aria-hidden', 'true'); }
+  document.body.style.overflow = '';
+  document.getElementById('cartBtn')?.focus();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const drawer = document.getElementById('cartDrawer');
+    if (drawer && drawer.classList.contains('open')) closeCart();
+  }
+});
+
+function renderCart() {
+  const cart    = getCart();
+  const itemsEl = document.getElementById('cartItems');
+  const footEl  = document.getElementById('cartFoot');
+  if (!itemsEl) return;
+
+  updateNavCartCount();
+
+  const count    = cart.reduce((s, i) => s + i.qty, 0);
+  const subtotal = cart.reduce((s, i) => s + i.retail_price * i.qty, 0);
+
+  if (!cart.length) {
+    itemsEl.innerHTML = `
+      <div style="text-align:center;padding:3rem 1rem;color:var(--muted)">
+        <div style="font-size:3rem;margin-bottom:.75rem" role="img" aria-label="Empty cart">&#x1F6D2;</div>
+        <p style="margin-bottom:1rem">Your cart is empty.</p>
+        <button onclick="closeCart()"
+          style="background:var(--purple);color:#fff;border:none;
+          padding:.6rem 1.4rem;border-radius:100px;
+          font-family:inherit;font-weight:600;cursor:pointer">
+          Start Shopping
+        </button>
+      </div>`;
+    if (footEl) footEl.style.display = 'none';
+    return;
+  }
+
+  itemsEl.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <div class="ci-img">
+        ${item.image_url
+          ? `<img src="${esc(item.image_url)}" alt="${esc(item.product_name)}" loading="lazy">`
+          : `<div class="ci-emoji" role="img" aria-label="${esc(item.product_name)}">${item.emoji || '&#x1F9F4;'}</div>`}
+      </div>
+      <div class="ci-info">
+        <div class="ci-name">${esc(item.product_name)}</div>
+        ${item.variant_label && item.variant_label !== 'Default'
+          ? `<div class="ci-variant">${esc(item.variant_label)}</div>` : ''}
+        <div class="ci-price">${fmt(item.retail_price)}</div>
+        <div class="ci-qty">
+          <button class="ci-qty-btn"
+            onclick="updateCartQty('${esc(item.key)}',-1)"
+            aria-label="Decrease quantity of ${esc(item.product_name)}">&#x2212;</button>
+          <span class="ci-qty-val" aria-label="Quantity: ${item.qty}">${item.qty}</span>
+          <button class="ci-qty-btn"
+            onclick="updateCartQty('${esc(item.key)}',1)"
+            aria-label="Increase quantity of ${esc(item.product_name)}">+</button>
+          <button class="ci-remove"
+            onclick="removeCartItem('${esc(item.key)}')"
+            aria-label="Remove ${esc(item.product_name)} from cart">Remove</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const subEl = document.getElementById('cartSubtotal');
+  if (subEl) subEl.textContent = fmt(subtotal);
+  if (footEl) footEl.style.display = 'block';
+}
+
+function updateCartQty(key, delta) {
+  const cart = getCart();
+  const item = cart.find(i => i.key === key);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) {
+    saveCart(cart.filter(i => i.key !== key));
+  } else {
+    saveCart(cart);
+  }
+  renderCart();
+}
+
+function removeCartItem(key) {
+  saveCart(getCart().filter(i => i.key !== key));
+  renderCart();
+}
+
+function applyPromoCode() {
+  const code = document.getElementById('promoCodeInput')?.value.trim();
+  const msg  = document.getElementById('promoMsg');
+  if (!code) { if (msg) { msg.textContent = 'Please enter a code'; msg.className = 'code-msg err'; } return; }
+  // Save to localStorage — validation happens on checkout page
+  localStorage.setItem('hairnique_promo', code.toUpperCase());
+  if (msg) { msg.textContent = 'Code saved — apply on checkout'; msg.className = 'code-msg ok'; }
 }

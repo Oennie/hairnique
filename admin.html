@@ -377,6 +377,8 @@ tr:hover td{background:#faf5ff}
         <span class="sb-icon">✍️</span>Blog Posts</div>
       <div class="sb-item" onclick="nav('sitecontent',this)">
         <span class="sb-icon">🖊️</span>Site Content</div>
+<div class="sb-item" onclick="nav('legal',this)">
+<span class="sb-icon">&#x2696;&#xFE0F;</span>Legal Pages</div>
       <div class="sb-item" onclick="nav('delivery',this)">
         <span class="sb-icon">🚚</span>Delivery Zones</div>
       <div class="sb-section">System</div>
@@ -687,7 +689,32 @@ tr:hover td{background:#faf5ff}
           </div>
         </div>
         <div id="plTable"></div>
-        <div id="productSalesTable" style="margin-top:1.5rem"></div>
+        <!-- Product Performance -->
+        <div class="table-card" style="margin-top:1.5rem">
+          <div class="table-header" style="display:flex;align-items:center;justify-content:space-between">
+            <span class="table-title" style="font-family:'DM Serif Display',serif">
+              Product Performance
+            </span>
+            <button class="btn btn-secondary btn-sm" onclick="exportProductSales()">
+              &#x2B07; Export CSV
+            </button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Orders</th>
+                  <th>Units Sold</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="productSalesBody">
+                <tr class="empty-row"><td colspan="4">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- BLOG -->
@@ -737,7 +764,15 @@ tr:hover td{background:#faf5ff}
       </div>
 
       <!-- SETTINGS -->
-      <div class="view" id="view-settings">
+      
+      <!-- LEGAL PAGES -->
+      <div class="view" id="view-legal">
+        <div class="section-head">
+          <h2>Legal Pages</h2>
+        </div>
+        <div id="legalDocsList"></div>
+      </div>
+<div class="view" id="view-settings">
         <div class="section-head"><h2>Settings</h2></div>
         <div class="two-col">
           <div class="table-card" style="padding:1.4rem">
@@ -755,10 +790,19 @@ tr:hover td{background:#faf5ff}
           <div class="table-card" style="padding:1.4rem">
             <div style="font-family:'DM Serif Display',serif;font-size:1rem;
               color:var(--purple);margin-bottom:1rem">Integrations</div>
-            <div class="form-group">
-              <label>Paystack Public Key</label>
-              <input type="text" id="settingPaystack">
-              <div class="form-hint">Switch to pk_live_ when ready to go live</div>
+            <div style="padding:.9rem 1rem;background:var(--bg);border-radius:10px;
+              font-size:.85rem;border:1.5px solid var(--border);margin-bottom:1rem">
+              <div style="font-weight:700;color:var(--purple);margin-bottom:.25rem">
+                &#x1F4B3; Paystack Key
+              </div>
+              <div style="color:var(--muted);line-height:1.6">
+                Your Paystack public key is managed in
+                <strong style="color:var(--purple);cursor:pointer"
+                  onclick="nav('sitecontent',document.querySelector('[onclick*=sitecontent]'))">
+                  Site Content &rarr; Settings
+                </strong>.
+                Click there to switch between test and live keys.
+              </div>
             </div>
             <div class="form-group">
               <label>Resend API Key (Email notifications)</label>
@@ -1172,16 +1216,14 @@ function changePw(){
   ['curPw','newPw','cfPw'].forEach(id=>document.getElementById(id).value='');
 }
 async function saveSettings(){
-  const ps=document.getElementById('settingPaystack').value.trim();
   const re=document.getElementById('settingResend').value.trim();
-  if(ps){
-    localStorage.setItem('hq_ps',ps);
-    await db.from('site_content')
-      .update({value:ps,updated_at:new Date().toISOString()})
-      .eq('key','paystack_public_key');
-  }
   if(re)localStorage.setItem('hq_resend',re);
   toast('Settings saved','success');
+}
+async function initSettings(){
+  // Paystack key is now managed via Site Content section only
+  const re=localStorage.getItem('hq_resend');
+  if(re){const el=document.getElementById('settingResend');if(el)el.value=re;}
 }
 if(localStorage.getItem('hq_auth')){
   document.getElementById('loginWrap').style.display='none';
@@ -1194,15 +1236,6 @@ async function initApp(){
   document.getElementById('topbarDate').textContent=
     new Date().toLocaleDateString('en-NG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('settingWA').value=WA_NUM;
-  // Load Paystack key from DB first, fallback to localStorage
-  try {
-    const {data:psData}=await db.from('site_content').select('value').eq('key','paystack_public_key').single();
-    document.getElementById('settingPaystack').value=
-      (psData&&psData.value)?psData.value:(localStorage.getItem('hq_ps')||'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153');
-  } catch(e) {
-    document.getElementById('settingPaystack').value=
-      localStorage.getItem('hq_ps')||'pk_test_3489677550dec0c82ce85b8b0881adefaa6b2153';
-  }
   await loadDashboard();
 }
 
@@ -1217,7 +1250,7 @@ function nav(name,el){
     categories:'Categories',inventory:'Inventory',customers:'Customers',
     feedback:'Feedback',discounts:'Discount Codes',referrals:'Referral Partners',
     expenses:'Expenses',reports:'Reports & Export',blog:'Blog Posts',
-    sitecontent:'Site Content',delivery:'Delivery Zones',settings:'Settings'};
+    sitecontent:'Site Content',delivery:'Delivery Zones',settings:'Settings',legal:'Legal Pages'};
   document.getElementById('topbarTitle').textContent=T[name]||name;
   document.getElementById('sidebar').classList.remove('open');
   refreshView();
@@ -1227,7 +1260,7 @@ function refreshView(){
     categories:loadCategories,inventory:loadInventory,customers:loadCustomers,
     feedback:loadFeedback,discounts:loadDiscounts,referrals:loadReferrals,
     expenses:loadExpenses,reports:loadReports,blog:loadBlog,
-    sitecontent:loadSiteContent,delivery:loadZones};
+    sitecontent:loadSiteContent,delivery:loadZones,settings:initSettings,legal:loadLegalDocs};
   if(M[currentView])M[currentView]();
 }
 
@@ -2023,34 +2056,101 @@ async function loadReports(){
 }
 
 async function loadProductSales() {
-  const { data } = await db.from('product_sales').select('*');
-  const container = document.getElementById('productSalesTable');
-  if (!container) return;
-  if (!data || !data.length) {
-    container.innerHTML = '<p style="color:var(--muted);padding:.75rem 0">No sales data yet</p>';
-    return;
+  const tbody = document.getElementById('productSalesBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Loading...</td></tr>';
+  try {
+    const { data, error } = await db.from('product_sales').select('*');
+    if (error) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red)">
+        Error: ${esc(error.message || JSON.stringify(error))}</td></tr>`;
+      console.error('product_sales error:', error);
+      return;
+    }
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No sales data yet &mdash; will populate as orders come in</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(row => `
+      <tr>
+        <td style="font-weight:600">${esc(row.product_name || '&mdash;')}</td>
+        <td style="text-align:center">${row.order_count || 0}</td>
+        <td style="text-align:center;font-weight:600">${row.total_qty_sold || 0}</td>
+        <td style="font-weight:700;color:var(--purple)">${fmt(row.total_revenue || 0)}</td>
+      </tr>`).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4" style="color:var(--red)">
+      JS Error: ${esc(e.message || String(e))}</td></tr>`;
+    console.error('loadProductSales exception:', e);
   }
-  container.innerHTML = `
-    <div class="table-card" style="margin-top:0">
-      <div class="table-header">
-        <span class="table-title" style="font-family:'DM Serif Display',serif;font-size:1rem">Product Performance</span>
+}
+
+async function exportProductSales() {
+  const { data } = await db.from('product_sales').select('*');
+  if (!data || !data.length) { toast('No data to export', 'error'); return; }
+  const headers = ['Product', 'Orders', 'Units Sold', 'Revenue (\u20A6)'];
+  const rows = data.map(r => [
+    r.product_name || '',
+    r.order_count || 0,
+    r.total_qty_sold || 0,
+    r.total_revenue || 0
+  ]);
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+    .join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'hairnique_product_sales_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('CSV downloaded', 'success');
+}
+
+/* LEGAL PAGES */
+async function loadLegalDocs() {
+  const { data } = await db.from('legal_documents').select('*').order('doc_key');
+  if (!data) return;
+  document.getElementById('legalDocsList').innerHTML = data.map(doc => `
+    <div class="table-card" style="margin-bottom:1.25rem;padding:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;
+        margin-bottom:1rem;flex-wrap:wrap;gap:.6rem">
+        <div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--purple)">
+            ${esc(doc.title)}
+          </div>
+          <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">
+            Version ${doc.version} &middot; Effective ${fmtD(doc.effective_date)} &middot;
+            Last saved ${fmtD(doc.updated_at)}
+          </div>
+        </div>
+        <button class="btn btn-pink btn-sm" onclick="saveLegalDoc('${doc.id}')">
+          Save Changes
+        </button>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th>Product</th><th>Orders</th><th>Units Sold</th><th>Revenue</th>
-          </tr></thead>
-          <tbody>
-            ${data.map(row => `<tr>
-              <td>${esc(row.product_name || '')}</td>
-              <td style="text-align:center">${row.order_count || 0}</td>
-              <td style="text-align:center">${row.total_qty_sold || 0}</td>
-              <td style="font-weight:700;color:var(--green)">${fmt(row.total_revenue || 0)}</td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <textarea id="legal_${doc.id}" rows="14"
+        style="width:100%;padding:.9rem;border:1.5px solid var(--border);
+        border-radius:10px;font-family:'Courier New',monospace;font-size:.83rem;
+        line-height:1.6;resize:vertical;outline:none"
+      >${esc(doc.content)}</textarea>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.6">
+        Formatting: start a line with <code>##</code> for a heading,
+        <code>-</code> for a bullet, blank line between paragraphs.
+        Version and effective date update automatically on save.
       </div>
-    </div>`;
+    </div>
+  `).join('');
+}
+
+async function saveLegalDoc(id) {
+  const el = document.getElementById('legal_' + id);
+  if (!el) return;
+  const content = el.value.trim();
+  if (!content) { toast('Content cannot be empty', 'error'); return; }
+  const { error } = await db.from('legal_documents')
+    .update({ content })
+    .eq('id', id);
+  if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+  toast('Legal page saved \u2014 version and date updated automatically', 'success');
+  loadLegalDocs();
 }
 /* BLOG */
 async function loadBlog(){
@@ -2156,7 +2256,7 @@ async function loadZones(){
           <button class="btn btn-danger btn-sm" onclick="deleteRow('delivery_zones','`+zid+`','Zone deleted',loadZones)">Delete</button>
         </div></td>
       </tr>`;}).join(''):
-    '<tr class="erow"><td colspan="5">No delivery zones</td></tr>';
+    '<tr class="empty-row"><td colspan="5">No delivery zones</td></tr>';
 }
 function openZoneModal(id=null,name='',areas='',price='',order='',active=true){
   document.getElementById('zoneModalTitle').textContent=id?'Edit Zone':'Add Zone';
