@@ -381,7 +381,26 @@
       <div class="fg"><label for="buyerName">Full Name *</label><input id="buyerName" type="text" aria-required="true" autocomplete="name" placeholder="e.g. Adaeze Okonkwo" maxlength="100" autocomplete="name"></div>
       <div class="fg"><label for="buyerPhone">WhatsApp Number *</label><input id="buyerPhone" type="tel" aria-required="true" autocomplete="tel" placeholder="+234 800 000 0000" maxlength="20" autocomplete="tel"></div>
       <div class="fg"><label for="buyerEmail">Email Address *</label><input id="buyerEmail" type="email" aria-required="true" autocomplete="email" placeholder="you@email.com" maxlength="150" autocomplete="email"></div>
-      <div class="fg" style="margin-bottom:0"><label for="buyerAddress">Delivery Address *</label><textarea id="buyerAddress" placeholder="House number, street, nearest landmark, area..." maxlength="300" rows="3" autocomplete="street-address"></textarea></div>
+      <div class="fg" style="margin-bottom:0">
+        <label for="buyerAddress">Delivery Address *</label>
+        <div style="position:relative">
+          <input
+            id="buyerAddress"
+            type="text"
+            placeholder="Start typing your address..."
+            maxlength="300"
+            autocomplete="off"
+            aria-label="Delivery address"
+            aria-describedby="addressHint"
+            required>
+          <div id="addressHint"
+            style="font-size:.73rem;color:var(--muted);margin-top:.3rem">
+            Type your address and select from the suggestions &mdash; we'll detect your zone automatically
+          </div>
+        </div>
+        <input type="hidden" id="buyerLat">
+        <input type="hidden" id="buyerLng">
+      </div>
     </div>
 
     <!-- Promo codes -->
@@ -526,6 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
   cart = getCart();
   renderState1();
   loadZones();
+  loadGoogleMaps();
 });
 
 // â”€â”€ STEP INDICATOR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -596,31 +616,60 @@ function goToState1() { showState(1); }
 async function loadZones() {
   try {
     var result = await db.from('delivery_zones').select('*').eq('is_active', true).order('sort_order');
+    if (result.error) {
+      console.error('delivery_zones error:', result.error);
+      document.getElementById('zoneSelect').innerHTML = '<option value="">Unable to load zones</option>';
+      return;
+    }
     allZones = result.data || [];
     var sel = document.getElementById('zoneSelect');
     if (!allZones.length) {
       sel.innerHTML = '<option value="">No delivery zones configured</option>';
       return;
     }
-    sel.innerHTML = '<option value="">Select your delivery zone *</option>' +
+    sel.innerHTML = '<option value="">Select your delivery area *</option>' +
       allZones.map(function(z) {
-        var areaStr = z.areas ? ' \u00b7 ' + (z.areas.length > 45 ? z.areas.substring(0,45) + '\u2026' : z.areas) : '';
-        var priceStr = z.price === 0 ? 'Free' : fmt(z.price);
-        return '<option value="' + esc(z.id) + '">' + esc(z.name) + areaStr + ' \u2014 ' + priceStr + '</option>';
+        var areaStr = z.areas ? ' \u2014 ' + z.areas : '';
+        return '<option value="' + esc(z.id) + '"' +
+          ' data-price="' + (z.price || 0) + '"' +
+          ' data-name="' + esc(z.name) + '"' +
+          ' data-areas="' + esc(z.areas || '') + '">' +
+          esc(z.name) + areaStr +
+          '</option>';
       }).join('');
   } catch(e) {
+    console.error('loadZones exception:', e);
     document.getElementById('zoneSelect').innerHTML = '<option value="">Unable to load zones</option>';
   }
 }
 
 function onZoneChange() {
   var sel = document.getElementById('zoneSelect');
-  var id = sel.value;
-  if (!id) { deliveryFee = 0; selectedZone = null; }
-  else {
-    var zone = allZones.find(function(z) { return z.id === id; });
-    if (zone) { deliveryFee = zone.price || 0; selectedZone = zone; }
+  var opt = sel.options[sel.selectedIndex];
+
+  if (!opt || !opt.value) {
+    deliveryFee = 0;
+    selectedZone = null;
+    var dr = document.getElementById('s2DeliveryRow');
+    if (dr) dr.style.display = 'none';
+    calcTotal();
+    return;
   }
+
+  deliveryFee = parseInt(opt.dataset.price) || 0;
+  selectedZone = {
+    id: opt.value,
+    name: opt.dataset.name,
+    price: deliveryFee
+  };
+
+  var dr = document.getElementById('s2DeliveryRow');
+  var da = document.getElementById('s2Delivery');
+  if (dr && da) {
+    da.textContent = deliveryFee === 0 ? 'Free' : fmt(deliveryFee);
+    dr.style.display = 'flex';
+  }
+
   calcTotal();
 }
 
@@ -952,6 +1001,184 @@ function showState4(orderNum, email, name, items, subtotal, total) {
 
   document.getElementById('ckSteps').style.display = 'none';
   showState(4);
+}
+
+// ═══ GOOGLE MAPS ADDRESS AUTOCOMPLETE ═══════════════════════════════
+
+const ZONE_KEYWORDS = {
+  'Lekki / VI / Ikoyi': [
+    'victoria island', 'ikoyi', 'oniru', 'lekki phase 1', 'lekki phase1',
+    'osborne foreshore', 'osborne', 'banana island', 'parkview', 'vi,',
+    'v.i.', 'lekki phase i', 'eti-osa'
+  ],
+  'Lekki Phase 2 / Ajah': [
+    'lekki phase 2', 'lekki phase2', 'lekki phase ii', 'chevron',
+    'agungi', 'igbo efon', 'jakande', 'ajah', 'abraham adesanya',
+    'sangotedo', 'abijo', 'awoyaya', 'lakowe', 'bogije', 'eleko',
+    'ibeju-lekki', 'ibeju lekki', 'free trade zone', 'lekki-epe expressway',
+    'lekki expressway', 'vgc', 'victoria garden city'
+  ],
+  'Island Other': [
+    'lagos island', 'marina', 'cms', 'broad street', 'idumota', 'balogun',
+    'isale eko', 'eko atlantic', 'apapa', 'tin can', 'ijora', 'apapa gra',
+    'apapa-iganmu', 'coker', 'orile', 'surulere bridge'
+  ],
+  'Mainland \u2013 Close': [
+    'yaba', 'ebute metta', 'ebute-metta', 'surulere', 'ojuelegba', 'mushin',
+    'costain', 'jibowu', 'fadeyi', 'somolu', 'shomolu', 'bariga', 'akoka',
+    'sabo', 'palm avenue', 'eric moore', 'aguda', 'itire', 'shitta',
+    'bode thomas', 'alaka', 'randle', 'western avenue', 'lawanson'
+  ],
+  'Mainland \u2013 Central': [
+    'ikeja', 'gra ikeja', 'ikeja gra', 'allen avenue', 'allen, ikeja',
+    'opebi', 'alausa', 'maryland', 'anthony village', 'ilupeju', 'magodo',
+    'ojota', 'ketu', 'mile 12', 'ogudu', 'gbagada', 'palmgrove',
+    'palm groove', 'oshodi', 'isolo', 'mafoluku', 'ajao estate',
+    'airport road', 'murtala muhammed airport', 'oke-afa', 'oke afa',
+    'cele', 'ago palace', 'ago-palace', 'okota', 'ejigbo', 'airport'
+  ],
+  'Mainland \u2013 West': [
+    'ogba', 'agege', 'ifako', 'berger', 'iju', 'fagba', 'alagbado',
+    'meiran', 'dopemu', 'pen cinema', 'abule egba', 'abule-egba',
+    'ijaiye', 'cement', 'orile agege', 'oko oba'
+  ],
+  'Mainland \u2013 Outer': [
+    'egbeda', 'ipaja', 'ayobo', 'ikotun', 'igando', 'idimu', 'akesan',
+    'command', 'ikola', 'isheri olofin', 'iyana ipaja', 'alimosho',
+    'shasha', 'akowonjo', 'wofun', 'pipeline'
+  ],
+  'Festac / Amuwo / Badagry Axis': [
+    'festac', 'amuwo-odofin', 'amuwo odofin', 'satellite town',
+    'mile 2', 'agboju', 'trade fair', 'ojo', 'iba', 'okokomaiko',
+    'ijanikin', 'badagry', 'ijegun', 'irede', 'alakija',
+    'volks', 'volkswagen', 'alaba', 'alaba international'
+  ],
+  'Ikorodu Axis': [
+    'ikorodu', 'agric', 'ijede', 'ebute ikorodu', 'baiyeku', 'imota',
+    'agbowa', 'odogunyan', 'ikorodu north', 'laswa', 'isiu',
+    'igbogbo', 'bayeku', 'owutu'
+  ],
+  'Epe Axis': [
+    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin',
+    'epe marina', 'erodo', 'igbile', 'pawa'
+  ],
+  'Outside Lagos': [
+    'abeokuta', 'ibadan', 'abuja', 'port harcourt', 'kano', 'kaduna',
+    'enugu', 'benin city', 'warri', 'calabar', 'uyo', 'jos',
+    'ogun state', 'oyo state', 'rivers state', 'delta state',
+    'anambra', 'imo', 'abia', 'edo', 'kwara', 'osun', 'ekiti',
+    'ondo', 'akwa ibom', 'cross river', 'benue', 'nassarawa',
+    'niger state', 'sokoto', 'kebbi', 'zamfara', 'katsina',
+    'jigawa', 'bauchi', 'gombe', 'yobe', 'borno', 'adamawa',
+    'taraba', 'plateau', 'kogi'
+  ]
+};
+
+function detectZoneFromAddress(formattedAddress) {
+  var lower = formattedAddress.toLowerCase();
+  for (var zoneName in ZONE_KEYWORDS) {
+    if (ZONE_KEYWORDS[zoneName].some(function(kw) { return lower.includes(kw); })) {
+      return zoneName;
+    }
+  }
+  return null;
+}
+
+function autoSelectZone(zoneName) {
+  var sel = document.getElementById('zoneSelect');
+  if (!sel || !zoneName) { showZoneManualPrompt(); return; }
+  var matched = false;
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].dataset.name === zoneName) {
+      sel.selectedIndex = i;
+      onZoneChange();
+      matched = true;
+      showZoneConfirmation(zoneName, sel.options[i].dataset.price);
+      break;
+    }
+  }
+  if (!matched) showZoneManualPrompt();
+}
+
+function showZoneConfirmation(zoneName, price) {
+  var msg = document.getElementById('zoneMsg');
+  if (!msg) {
+    msg = document.createElement('div');
+    msg.id = 'zoneMsg';
+    document.getElementById('zoneSelect').insertAdjacentElement('afterend', msg);
+  }
+  var fee = parseInt(price) || 0;
+  msg.style.cssText = 'font-size:.78rem;margin-top:.3rem;font-weight:600;color:#065f46';
+  msg.textContent = '\u2713 Zone detected: ' + zoneName + ' \u00b7 Delivery fee: ' + (fee === 0 ? 'Free' : fmt(fee));
+}
+
+function showZoneManualPrompt() {
+  var msg = document.getElementById('zoneMsg');
+  if (!msg) {
+    msg = document.createElement('div');
+    msg.id = 'zoneMsg';
+    var sel = document.getElementById('zoneSelect');
+    if (sel) sel.insertAdjacentElement('afterend', msg);
+  }
+  msg.style.cssText = 'font-size:.78rem;margin-top:.3rem;font-weight:600;color:#b45309';
+  msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it manually above.";
+}
+
+function initAddressAutocomplete() {
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+    return;
+  }
+  var input = document.getElementById('buyerAddress');
+  if (!input) return;
+
+  var autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'ng' },
+    fields: ['formatted_address', 'geometry', 'name'],
+    types: ['geocode', 'establishment']
+  });
+
+  autocomplete.addListener('place_changed', function() {
+    var place = autocomplete.getPlace();
+    if (!place.geometry) return;
+
+    var formatted = place.formatted_address || input.value;
+    input.value = formatted;
+
+    document.getElementById('buyerLat').value = place.geometry.location.lat();
+    document.getElementById('buyerLng').value = place.geometry.location.lng();
+
+    autoSelectZone(detectZoneFromAddress(formatted));
+  });
+
+  // Style the Google autocomplete dropdown to match brand
+  var style = document.createElement('style');
+  style.textContent =
+    '.pac-container{border-radius:10px;border:1.5px solid rgba(40,16,63,.1);' +
+    'box-shadow:0 8px 24px rgba(40,16,63,.12);font-family:"DM Sans",sans-serif;margin-top:2px}' +
+    '.pac-item{padding:.55rem .9rem;font-size:.88rem;cursor:pointer;color:#1a0a2e}' +
+    '.pac-item:hover{background:#F4EEF9}' +
+    '.pac-item-query{color:#28103F;font-weight:600}' +
+    '.pac-matched{color:#F64484}' +
+    '.pac-icon{display:none}';
+  document.head.appendChild(style);
+}
+
+async function loadGoogleMaps() {
+  try {
+    var result = await db.from('site_content')
+      .select('value').eq('key', 'google_maps_key').single();
+    var key = result.data && result.data.value;
+    if (!key) {
+      console.warn('Google Maps key not found in site_content');
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&libraries=places&callback=initAddressAutocomplete';
+    script.async = true;
+    document.head.appendChild(script);
+  } catch(e) {
+    console.warn('Could not load Google Maps:', e);
+  }
 }
 </script>
 </body>

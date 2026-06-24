@@ -1488,49 +1488,109 @@ function waMsg(phone,name,num){
 
 /* PRODUCTS */
 async function loadProducts(){
-  const[{data:prods},{data:cats}]=await Promise.all([
-    db.from('products').select('*,variants(*)').order('category').order('name'),
-    db.from('categories').select('*').order('sort_order')
-  ]);
-  allProducts=prods||[];allCats=cats||[];
-  const cf=document.getElementById('productCatFilter');
-  cf.innerHTML='<option value="">All Categories</option>'+
-    allCats.map(c=>`<option value="${c.name}">${c.emoji||''} ${c.name}</option>`).join('');
-  renderProducts(allProducts);
+  document.getElementById('productsBody').innerHTML =
+    '<tr class="empty-row"><td colspan="5">Loading...</td></tr>';
+
+  try {
+    const { data: prods, error: prodError } = await db
+      .from('products')
+      .select('id, name, description, category, emoji, image_url, is_active, created_at')
+      .order('category')
+      .order('name');
+
+    if (prodError) {
+      console.error('products query error:', prodError);
+      document.getElementById('productsBody').innerHTML =
+        `<tr class="empty-row"><td colspan="5">Error: ${prodError.message}</td></tr>`;
+      return;
+    }
+
+    const { data: cats, error: catError } = await db
+      .from('categories')
+      .select('name, emoji')
+      .order('sort_order');
+
+    if (catError) console.warn('categories query error:', catError);
+
+    const { data: variants } = await db
+      .from('variants')
+      .select('product_id, id, is_active');
+
+    allProducts = prods || [];
+    allCats = cats || [];
+
+    const variantMap = {};
+    (variants || []).forEach(v => {
+      if (!variantMap[v.product_id]) variantMap[v.product_id] = { total: 0, active: 0 };
+      variantMap[v.product_id].total++;
+      if (v.is_active) variantMap[v.product_id].active++;
+    });
+
+    const cf = document.getElementById('productCatFilter');
+    if (cf) {
+      cf.innerHTML = '<option value="">All Categories</option>' +
+        allCats.map(c => `<option value="${c.name}">${c.emoji || ''} ${c.name}</option>`).join('');
+    }
+
+    renderProducts(allProducts, variantMap);
+  } catch(e) {
+    console.error('loadProducts exception:', e);
+    document.getElementById('productsBody').innerHTML =
+      `<tr class="empty-row"><td colspan="5">Error: ${e.message || String(e)}</td></tr>`;
+  }
 }
-function renderProducts(products){
-  document.getElementById('productsBody').innerHTML=products.length?
-    products.map(p=>{
-      const vars=p.variants||[];
-      return `<tr>
-        <td>
-          <div style="display:flex;align-items:center;gap:.6rem">
-            ${p.image_url?
-              `<img src="${p.image_url}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1px solid var(--border)">`:
-              `<div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#f0ebf8,#e4d8f5);display:flex;align-items:center;justify-content:center;font-size:1.15rem;flex-shrink:0">${p.emoji||'🧴'}</div>`}
-            <div>
-              <div style="font-weight:600;font-size:.86rem">${p.name}</div>
-              <div style="font-size:.71rem;color:var(--muted)">${(p.description||'').substring(0,52)}...</div>
+
+var _variantMap = {};
+function renderProducts(products, variantMap){
+  if (variantMap) _variantMap = variantMap;
+  document.getElementById('productsBody').innerHTML = products.length
+    ? products.map(p => {
+        const vc = _variantMap[p.id] || { total: 0, active: 0 };
+        return `<tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:.65rem">
+              ${p.image_url
+                ? `<img src="${esc(p.image_url)}" alt="${esc(p.name)}"
+                    style="width:38px;height:38px;border-radius:8px;
+                    object-fit:cover;border:1px solid var(--border)" loading="lazy">`
+                : `<div style="width:38px;height:38px;border-radius:8px;
+                    background:linear-gradient(135deg,#f0ebf8,#e4d8f5);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:1.1rem;flex-shrink:0">${p.emoji || '\uD83E\uDDF4'}</div>`}
+              <div>
+                <div style="font-weight:600;font-size:.87rem">${esc(p.name)}</div>
+                <div style="font-size:.72rem;color:var(--muted)">
+                  ${esc((p.description || '').substring(0, 55))}...</div>
+              </div>
             </div>
-          </div>
-        </td>
-        <td><span style="font-size:.71rem;background:var(--bg);padding:.18rem .55rem;border-radius:6px;color:var(--muted);font-weight:600">${p.category}</span></td>
-        <td>
-          <div style="font-weight:600;font-size:.84rem">${vars.filter(v=>v.is_active).length} active</div>
-          <div style="font-size:.71rem;color:var(--muted)">${vars.length} total</div>
-        </td>
-        <td><span class="badge badge-${p.is_active?'active':'inactive'}">${p.is_active?'Active':'Hidden'}</span></td>
-        <td>
-          <div style="display:flex;gap:.3rem">
-            <button class="btn btn-secondary btn-sm" onclick="openProductModal('${p.id}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}',${JSON.stringify(p.name)})">Delete</button>
-          </div>
-        </td>
-      </tr>`;
-    }).join(''):
-    '<tr class="empty-row"><td colspan="5">No products found</td></tr>';
-}
-function filterProducts(){
+          </td>
+          <td>
+            <span style="font-size:.72rem;background:var(--bg);
+              padding:.2rem .55rem;border-radius:6px;
+              font-weight:600;color:var(--muted)">${esc(p.category)}</span>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:.84rem">${vc.active} active</div>
+            <div style="font-size:.72rem;color:var(--muted)">${vc.total} total</div>
+          </td>
+          <td>
+            <span class="badge badge-${p.is_active ? 'active' : 'inactive'}">
+              ${p.is_active ? 'Active' : 'Hidden'}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:.28rem">
+              <button class="btn btn-secondary btn-sm"
+                onclick="openProductModal('${p.id}')">Edit</button>
+              <button class="btn btn-danger btn-sm"
+                onclick="deleteProduct('${p.id}',${JSON.stringify(p.name)})">
+                Delete</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('')
+    : '<tr class="empty-row"><td colspan="5">No products found</td></tr>';
+}function filterProducts(){
   const q=document.getElementById('productSearch').value.toLowerCase();
   const cat=document.getElementById('productCatFilter').value;
   renderProducts(allProducts.filter(p=>
@@ -2107,50 +2167,101 @@ async function exportProductSales() {
 
 /* LEGAL PAGES */
 async function loadLegalDocs() {
-  const { data } = await db.from('legal_documents').select('*').order('doc_key');
-  if (!data) return;
-  document.getElementById('legalDocsList').innerHTML = data.map(doc => `
-    <div class="table-card" style="margin-bottom:1.25rem;padding:1.5rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;
-        margin-bottom:1rem;flex-wrap:wrap;gap:.6rem">
-        <div>
-          <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--purple)">
-            ${esc(doc.title)}
+  const container = document.getElementById('legalDocsList');
+  if (!container) {
+    console.error('legalDocsList container not found in DOM');
+    return;
+  }
+  container.innerHTML = '<div style="padding:2rem;color:var(--muted)">Loading legal documents...</div>';
+
+  try {
+    const { data, error } = await db
+      .from('legal_documents')
+      .select('id, doc_key, title, version, effective_date, updated_at, content')
+      .order('doc_key');
+
+    if (error) {
+      console.error('legal_documents query error:', error);
+      container.innerHTML = `<div style="padding:2rem;color:var(--red)">
+        Failed to load legal documents: ${error.message}<br>
+        <small style="color:var(--muted)">Check browser console for details</small>
+      </div>`;
+      return;
+    }
+
+    if (!data || !data.length) {
+      container.innerHTML = `<div style="padding:2rem;color:var(--muted)">
+        No legal documents found. Please run the legal_documents SQL in Supabase first.
+      </div>`;
+      return;
+    }
+
+    const docOrder = ['terms', 'privacy', 'fulfilment', 'disclaimer'];
+    const sorted = [...data].sort((a, b) =>
+      docOrder.indexOf(a.doc_key) - docOrder.indexOf(b.doc_key));
+
+    container.innerHTML = sorted.map(doc => `
+      <div class="table-card" style="margin-bottom:1.25rem;padding:1.5rem">
+        <div style="display:flex;justify-content:space-between;
+          align-items:flex-start;margin-bottom:.85rem;flex-wrap:wrap;gap:.6rem">
+          <div>
+            <div style="font-family:'DM Serif Display',serif;
+              font-size:1.05rem;color:var(--purple);margin-bottom:.2rem">
+              ${esc(doc.title)}
+            </div>
+            <div style="font-size:.75rem;color:var(--muted)">
+              Version ${doc.version}
+              &middot; Effective ${fmtD(doc.effective_date)}
+              &middot; Last saved ${fmtD(doc.updated_at)}
+            </div>
           </div>
-          <div style="font-size:.78rem;color:var(--muted);margin-top:.2rem">
-            Version ${doc.version} &middot; Effective ${fmtD(doc.effective_date)} &middot;
-            Last saved ${fmtD(doc.updated_at)}
-          </div>
+          <button class="btn btn-pink btn-sm"
+            onclick="saveLegalDoc('${doc.id}')">
+            &#x1F4BE; Save Changes
+          </button>
         </div>
-        <button class="btn btn-pink btn-sm" onclick="saveLegalDoc('${doc.id}')">
-          Save Changes
-        </button>
-      </div>
-      <textarea id="legal_${doc.id}" rows="14"
-        style="width:100%;padding:.9rem;border:1.5px solid var(--border);
-        border-radius:10px;font-family:'Courier New',monospace;font-size:.83rem;
-        line-height:1.6;resize:vertical;outline:none"
-      >${esc(doc.content)}</textarea>
-      <div style="font-size:.72rem;color:var(--muted);margin-top:.5rem;line-height:1.6">
-        Formatting: start a line with <code>##</code> for a heading,
-        <code>-</code> for a bullet, blank line between paragraphs.
-        Version and effective date update automatically on save.
-      </div>
-    </div>
-  `).join('');
+        <textarea id="legal_${doc.id}"
+          style="width:100%;padding:.9rem;
+          border:1.5px solid var(--border);border-radius:10px;
+          font-family:'Courier New',monospace;font-size:.82rem;
+          line-height:1.65;resize:vertical;outline:none;
+          min-height:280px;color:var(--text)"
+          onfocus="this.style.borderColor='var(--purple)'"
+          onblur="this.style.borderColor='var(--border)'"
+        >${esc(doc.content)}</textarea>
+        <div style="font-size:.71rem;color:var(--muted);margin-top:.45rem;line-height:1.6">
+          <strong>Formatting:</strong>
+          start line with <code style="background:var(--bg);padding:.1rem .3rem;border-radius:4px">##</code> for a heading &middot;
+          start line with <code style="background:var(--bg);padding:.1rem .3rem;border-radius:4px">-</code> for a bullet &middot;
+          blank line between paragraphs &middot;
+          Version and date update automatically on save
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    console.error('loadLegalDocs exception:', e);
+    container.innerHTML = `<div style="padding:2rem;color:var(--red)">
+      Error: ${e.message || String(e)}</div>`;
+  }
 }
 
 async function saveLegalDoc(id) {
-  const el = document.getElementById('legal_' + id);
-  if (!el) return;
-  const content = el.value.trim();
+  const ta = document.getElementById('legal_' + id);
+  if (!ta) { toast('Editor not found', 'error'); return; }
+  const content = ta.value.trim();
   if (!content) { toast('Content cannot be empty', 'error'); return; }
-  const { error } = await db.from('legal_documents')
+
+  const { error } = await db
+    .from('legal_documents')
     .update({ content })
     .eq('id', id);
-  if (error) { toast('Save failed: ' + error.message, 'error'); return; }
-  toast('Legal page saved \u2014 version and date updated automatically', 'success');
-  loadLegalDocs();
+
+  if (error) {
+    console.error('saveLegalDoc error:', error);
+    toast('Save failed: ' + error.message, 'error');
+    return;
+  }
+  toast('Legal page saved \u2014 version and date updated automatically \u2713', 'success');
+  await loadLegalDocs();
 }
 /* BLOG */
 async function loadBlog(){
