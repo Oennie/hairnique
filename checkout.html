@@ -264,6 +264,41 @@
   .ci-img { width: 42px; height: 42px; }
 }
 .skip-link{position:absolute;top:-40px;left:0;background:#28103F;color:#fff;padding:.5rem 1.25rem;text-decoration:none;font-weight:700;font-size:.85rem;z-index:9999;border-radius:0 0 8px 0;transition:top .15s}.skip-link:focus{top:0}
+
+/* Zone Picker */
+.zone-picker { position: relative; width: 100%; }
+.zone-picker-btn {
+  width: 100%; padding: .7rem 1rem;
+  border: 1.5px solid var(--border); border-radius: 10px;
+  background: #fff; font-family: 'DM Sans', sans-serif;
+  font-size: .9rem; color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .5rem; text-align: left; transition: border-color .2s;
+}
+.zone-picker-btn:focus,
+.zone-picker-btn[aria-expanded="true"] { border-color: var(--purple); outline: none; }
+.zone-picker-list {
+  position: absolute; top: calc(100% + .35rem); left: 0; right: 0;
+  background: #fff; border: 1.5px solid var(--border); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(40,16,63,.12); z-index: 100;
+  max-height: 320px; overflow-y: auto; padding: .4rem;
+}
+.zone-option {
+  padding: .7rem .9rem; border-radius: 8px; cursor: pointer;
+  transition: background .15s; border: none; background: none;
+  width: 100%; text-align: left; font-family: 'DM Sans', sans-serif;
+  display: block;
+}
+.zone-option:hover { background: var(--light); }
+.zone-option.selected { background: var(--purple); color: #fff; }
+.zone-option-name {
+  font-weight: 700; font-size: .88rem; color: inherit;
+  margin-bottom: .18rem; display: flex;
+  justify-content: space-between; align-items: center;
+}
+.zone-option.selected .zone-option-areas { font-size: .76rem; color: var(--muted); line-height: 1.5; }
+.zone-option.selected .zone-option-areas { color: rgba(255,255,255,.65); }
+.zone-picker-divider { height: 1px; background: var(--border); margin: .3rem .4rem; }
 </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -362,75 +397,66 @@
 
   <!-- â”€â”€ STATE 2: CUSTOMER DETAILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
   <div id="state2" style="display:none">
-    <h1 class="ck-title">Your Details</h1>
+    <h1 class="ck-title">Checkout</h1>
 
-    <!-- Delivery zone -->
+    <!-- Box 1: Your Details -->
     <div class="ck-card">
-      <div class="ck-section-title">Delivery Zone</div>
-      <div class="fg" style="margin-bottom:0">
-        <label for="zoneSelect">Select your delivery area *</label>
-        <select id="zoneSelect" onchange="onZoneChange()">
-          <option value="">Loading delivery zones...</option>
-        </select>
-      </div>
+      <div class="ck-section-title">Your Details</div>
+      <div class="fg"><label for="buyerName">Full Name *</label><input id="buyerName" type="text" aria-required="true" autocomplete="name" placeholder="e.g. Adaeze Okonkwo" maxlength="100"></div>
+      <div class="fg"><label for="buyerPhone">WhatsApp Number *</label><input id="buyerPhone" type="tel" aria-required="true" autocomplete="tel" placeholder="+234 800 000 0000" maxlength="20"></div>
+      <div class="fg" style="margin-bottom:0"><label for="buyerEmail">Email Address *</label><input id="buyerEmail" type="email" aria-required="true" autocomplete="email" placeholder="you@email.com" maxlength="150"></div>
     </div>
 
-    <!-- Contact info -->
+    <!-- Box 2: Delivery -->
     <div class="ck-card">
-      <div class="ck-section-title">Contact Information</div>
-      <div class="fg"><label for="buyerName">Full Name *</label><input id="buyerName" type="text" aria-required="true" autocomplete="name" placeholder="e.g. Adaeze Okonkwo" maxlength="100" autocomplete="name"></div>
-      <div class="fg"><label for="buyerPhone">WhatsApp Number *</label><input id="buyerPhone" type="tel" aria-required="true" autocomplete="tel" placeholder="+234 800 000 0000" maxlength="20" autocomplete="tel"></div>
-      <div class="fg"><label for="buyerEmail">Email Address *</label><input id="buyerEmail" type="email" aria-required="true" autocomplete="email" placeholder="you@email.com" maxlength="150" autocomplete="email"></div>
-      <div class="fg" style="margin-bottom:0">
+      <div class="ck-section-title">Delivery</div>
+      <div class="fg">
         <label for="buyerAddress">Delivery Address *</label>
         <div style="position:relative">
-          <input
-            id="buyerAddress"
-            type="text"
-            placeholder="Start typing your address..."
-            maxlength="300"
-            autocomplete="off"
-            aria-label="Delivery address"
-            aria-describedby="addressHint"
-            required>
-          <div id="addressHint"
-            style="font-size:.73rem;color:var(--muted);margin-top:.3rem">
-            Type your address and select from the suggestions &mdash; we'll detect your zone automatically
-          </div>
+          <input id="buyerAddress" type="text" placeholder="Start typing your address..." maxlength="300" autocomplete="off" aria-label="Delivery address" aria-describedby="addressHint" required>
+          <div id="addressHint" style="font-size:.73rem;color:var(--muted);margin-top:.3rem">Type your address and select from the suggestions &mdash; we'll detect your zone automatically</div>
         </div>
         <input type="hidden" id="buyerLat">
         <input type="hidden" id="buyerLng">
       </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Delivery Zone *</label>
+        <div class="zone-picker" id="zonePicker">
+          <button type="button" class="zone-picker-btn" id="zonePickerBtn" onclick="toggleZonePicker()" aria-haspopup="listbox" aria-expanded="false" aria-label="Select delivery zone">
+            <span id="zonePickerLabel" style="color:var(--muted)">Select your delivery area</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="zonePickerArrow" style="transition:transform .2s;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="zone-picker-list" id="zonePickerList" role="listbox" aria-label="Delivery zones" style="display:none"></div>
+        </div>
+        <input type="hidden" id="zoneId">
+        <input type="hidden" id="zoneName">
+        <input type="hidden" id="zonePrice">
+        <div id="zoneMsg" style="font-size:.78rem;margin-top:.35rem;font-weight:600"></div>
+      </div>
     </div>
 
-    <!-- Promo codes -->
+    <!-- Box 3: Promo & Referral Codes -->
     <div class="ck-card">
       <div class="ck-section-title">Promo &amp; Referral Codes</div>
       <div class="fg">
         <label>Discount Code <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(optional)</span></label>
-        <div class="code-row">
-          <input id="discountInput" type="text" placeholder="Enter code" autocomplete="off" maxlength="50">
-          <button class="code-apply-btn" onclick="applyDiscount()">Apply</button>
-        </div>
+        <div class="code-row"><input id="discountInput" type="text" placeholder="Enter code" autocomplete="off" maxlength="50"><button class="code-apply-btn" onclick="applyDiscount()">Apply</button></div>
         <div class="code-msg" id="discountMsg"></div>
       </div>
       <div class="fg" style="margin-bottom:0">
         <label>Referral Code <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">(optional)</span></label>
-        <div class="code-row">
-          <input id="referralInput" type="text" placeholder="Enter code" autocomplete="off" maxlength="50">
-          <button class="code-apply-btn" onclick="applyReferral()">Apply</button>
-        </div>
+        <div class="code-row"><input id="referralInput" type="text" placeholder="Enter code" autocomplete="off" maxlength="50"><button class="code-apply-btn" onclick="applyReferral()">Apply</button></div>
         <div class="code-msg" id="referralMsg"></div>
       </div>
     </div>
 
-    <!-- Order summary -->
+    <!-- Box 4: Order Summary -->
     <div class="ck-card">
       <div class="ck-section-title">Order Summary</div>
-      <div class="summary-row"><span>Subtotal</span><span id="s2Subtotal">â‚¦0</span></div>
-      <div class="summary-row delivery" id="s2DeliveryRow" style="display:none"><span id="s2DeliveryLabel">Delivery</span><span id="s2Delivery">â‚¦0</span></div>
-      <div class="summary-row discount" id="s2DiscountRow" style="display:none"><span id="s2DiscountLabel">Discount</span><span id="s2Discount">-â‚¦0</span></div>
-      <div class="summary-row total"><span>Total</span><span id="s2Total">â‚¦0</span></div>
+      <div class="summary-row"><span>Subtotal</span><span id="s2Subtotal">&#x20A6;0</span></div>
+      <div class="summary-row delivery" id="s2DeliveryRow" style="display:none"><span id="s2DeliveryLabel">Delivery</span><span id="s2Delivery">&#x20A6;0</span></div>
+      <div class="summary-row discount" id="s2DiscountRow" style="display:none"><span id="s2DiscountLabel">Discount</span><span id="s2Discount">-&#x20A6;0</span></div>
+      <div class="summary-row total"><span>Total</span><span id="s2Total">&#x20A6;0</span></div>
     </div>
 
     <button class="pay-btn" onclick="goToState3()">Continue to Payment &rarr;</button>
@@ -492,10 +518,10 @@
         <a href="index.html#education">Hair Tips</a>
         <a href="index.html#community">Community</a>
         <a href="index.html#contact">Contact</a>
-        <a href="/legal">Terms &amp; Conditions</a>
-        <a href="/legal#privacy">Privacy Policy</a>
-        <a href="/legal#fulfilment">Shipping &amp; Returns</a>
-        <a href="/legal#disclaimer">Product Disclaimer</a>
+        <a href="/legal.html">Terms &amp; Conditions</a>
+        <a href="/legal.html#privacy">Privacy Policy</a>
+        <a href="/legal.html#fulfilment">Shipping &amp; Returns</a>
+        <a href="/legal.html#disclaimer">Product Disclaimer</a>
 
       </div>
       <div class="footer-socials">
@@ -521,7 +547,6 @@ var selectedZone = null;
 var discountApplied = null;
 var referralApplied = null;
 var discountAmount = 0;
-var allZones = [];
 var buyerName = '', buyerPhone = '', buyerEmail = '', buyerAddress = '';
 var _paying = false;
 
@@ -544,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initNav('checkout');
   cart = getCart();
   renderState1();
-  loadZones();
+  loadDeliveryZones();
   loadGoogleMaps();
 });
 
@@ -613,65 +638,87 @@ function ckRemove(key) { removeFromCart(key); cart = getCart(); renderState1(); 
 function goToState1() { showState(1); }
 
 // â”€â”€ STATE 2: DETAILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-async function loadZones() {
+async function loadDeliveryZones() {
   try {
     var result = await db.from('delivery_zones').select('*').eq('is_active', true).order('sort_order');
     if (result.error) {
       console.error('delivery_zones error:', result.error);
-      document.getElementById('zoneSelect').innerHTML = '<option value="">Unable to load zones</option>';
       return;
     }
-    allZones = result.data || [];
-    var sel = document.getElementById('zoneSelect');
-    if (!allZones.length) {
-      sel.innerHTML = '<option value="">No delivery zones configured</option>';
+    window._deliveryZones = result.data || [];
+    var list = document.getElementById('zonePickerList');
+    if (!list) return;
+    if (!window._deliveryZones.length) {
+      list.innerHTML = '<div style="padding:1rem;color:var(--muted);font-size:.85rem">No delivery zones configured</div>';
       return;
     }
-    sel.innerHTML = '<option value="">Select your delivery area *</option>' +
-      allZones.map(function(z) {
-        var areaStr = z.areas ? ' \u2014 ' + z.areas : '';
-        return '<option value="' + esc(z.id) + '"' +
-          ' data-price="' + (z.price || 0) + '"' +
-          ' data-name="' + esc(z.name) + '"' +
-          ' data-areas="' + esc(z.areas || '') + '">' +
-          esc(z.name) + areaStr +
-          '</option>';
-      }).join('');
+    list.innerHTML = window._deliveryZones.map(function(z, i) {
+      return '<button type="button" class="zone-option" role="option"' +
+        ' data-id="' + esc(z.id) + '"' +
+        ' data-name="' + esc(z.name) + '"' +
+        ' data-price="' + (z.price || 0) + '"' +
+        ' onclick="selectZoneOption(this)">' +
+        '<div class="zone-option-name"><span>' + esc(z.name) + '</span></div>' +
+        '<div class="zone-option-areas">' + esc(z.areas || '') + '</div></button>' +
+        (i < window._deliveryZones.length - 1 ? '<div class="zone-picker-divider"></div>' : '');
+    }).join('');
   } catch(e) {
-    console.error('loadZones exception:', e);
-    document.getElementById('zoneSelect').innerHTML = '<option value="">Unable to load zones</option>';
+    console.error('loadDeliveryZones exception:', e);
   }
 }
 
-function onZoneChange() {
-  var sel = document.getElementById('zoneSelect');
-  var opt = sel.options[sel.selectedIndex];
+function toggleZonePicker() {
+  var list = document.getElementById('zonePickerList');
+  var btn = document.getElementById('zonePickerBtn');
+  var arrow = document.getElementById('zonePickerArrow');
+  var isOpen = list.style.display !== 'none';
+  list.style.display = isOpen ? 'none' : 'block';
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
 
-  if (!opt || !opt.value) {
-    deliveryFee = 0;
-    selectedZone = null;
-    var dr = document.getElementById('s2DeliveryRow');
-    if (dr) dr.style.display = 'none';
-    calcTotal();
-    return;
-  }
+function selectZoneOption(el) {
+  document.querySelectorAll('.zone-option').forEach(function(o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
 
-  deliveryFee = parseInt(opt.dataset.price) || 0;
-  selectedZone = {
-    id: opt.value,
-    name: opt.dataset.name,
-    price: deliveryFee
-  };
+  var id = el.dataset.id;
+  var name = el.dataset.name;
+  var price = parseInt(el.dataset.price) || 0;
+
+  document.getElementById('zoneId').value = id;
+  document.getElementById('zoneName').value = name;
+  document.getElementById('zonePrice').value = price;
+
+  document.getElementById('zonePickerLabel').textContent = name;
+  document.getElementById('zonePickerLabel').style.color = 'var(--text)';
+
+  document.getElementById('zonePickerList').style.display = 'none';
+  document.getElementById('zonePickerBtn').setAttribute('aria-expanded', 'false');
+  document.getElementById('zonePickerArrow').style.transform = 'rotate(0deg)';
+
+  deliveryFee = price;
+  selectedZone = { id: id, name: name, price: price };
 
   var dr = document.getElementById('s2DeliveryRow');
   var da = document.getElementById('s2Delivery');
   if (dr && da) {
-    da.textContent = deliveryFee === 0 ? 'Free' : fmt(deliveryFee);
+    da.textContent = price === 0 ? 'Free' : fmt(price);
     dr.style.display = 'flex';
   }
-
+  document.getElementById('s2DeliveryLabel').textContent = 'Delivery (' + name + ')';
   calcTotal();
 }
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.zone-picker')) {
+    var list = document.getElementById('zonePickerList');
+    if (list) list.style.display = 'none';
+    var btn = document.getElementById('zonePickerBtn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    var arrow = document.getElementById('zonePickerArrow');
+    if (arrow) arrow.style.transform = 'rotate(0deg)';
+  }
+});
 
 function calcSubtotal() {
   return cart.reduce(function(s, i) { return s + i.retail_price * i.qty; }, 0);
@@ -693,6 +740,7 @@ function calcTotal() {
   if (payText) payText.textContent = 'Pay ' + fmt(total) + ' securely';
 }
 
+// Zone detection using Google Geocoding reverse lookup
 function renderState2() {
   cart = getCart();
   calcTotal();
@@ -1005,162 +1053,158 @@ function showState4(orderNum, email, name, items, subtotal, total) {
 
 // ═══ GOOGLE MAPS ADDRESS AUTOCOMPLETE ═══════════════════════════════
 
-const ZONE_KEYWORDS = {
+var ZONE_AREAS = {
   'Lekki / VI / Ikoyi': [
-    'victoria island', 'ikoyi', 'oniru', 'lekki phase 1', 'lekki phase1',
-    'osborne foreshore', 'osborne', 'banana island', 'parkview', 'vi,',
-    'v.i.', 'lekki phase i', 'eti-osa'
+    'victoria island', 'ikoyi', 'oniru', 'lekki phase 1', 'lekki phase i',
+    'osborne', 'banana island', 'parkview', 'eti-osa', 'falomo'
   ],
   'Lekki Phase 2 / Ajah': [
-    'lekki phase 2', 'lekki phase2', 'lekki phase ii', 'chevron',
-    'agungi', 'igbo efon', 'jakande', 'ajah', 'abraham adesanya',
-    'sangotedo', 'abijo', 'awoyaya', 'lakowe', 'bogije', 'eleko',
-    'ibeju-lekki', 'ibeju lekki', 'free trade zone', 'lekki-epe expressway',
-    'lekki expressway', 'vgc', 'victoria garden city'
+    'lekki phase 2', 'lekki phase ii', 'chevron', 'agungi', 'igbo efon',
+    'jakande', 'ajah', 'abraham adesanya', 'sangotedo', 'abijo', 'awoyaya',
+    'lakowe', 'bogije', 'eleko', 'ibeju', 'free trade zone', 'vgc',
+    'oral estate', 'orchid'
   ],
   'Island Other': [
-    'lagos island', 'marina', 'cms', 'broad street', 'idumota', 'balogun',
-    'isale eko', 'eko atlantic', 'apapa', 'tin can', 'ijora', 'apapa gra',
-    'apapa-iganmu', 'coker', 'orile', 'surulere bridge'
+    'lagos island', 'marina', 'idumota', 'balogun', 'isale eko',
+    'eko atlantic', 'apapa', 'tin can', 'ijora', 'lagos island local government'
   ],
   'Mainland \u2013 Close': [
-    'yaba', 'ebute metta', 'ebute-metta', 'surulere', 'ojuelegba', 'mushin',
-    'costain', 'jibowu', 'fadeyi', 'somolu', 'shomolu', 'bariga', 'akoka',
-    'sabo', 'palm avenue', 'eric moore', 'aguda', 'itire', 'shitta',
-    'bode thomas', 'alaka', 'randle', 'western avenue', 'lawanson'
+    'yaba', 'ebute metta', 'surulere', 'ojuelegba', 'mushin', 'costain',
+    'jibowu', 'fadeyi', 'somolu', 'bariga', 'akoka', 'sabo', 'aguda',
+    'itire', 'shitta', 'iponri'
   ],
   'Mainland \u2013 Central': [
-    'ikeja', 'gra ikeja', 'ikeja gra', 'allen avenue', 'allen, ikeja',
-    'opebi', 'alausa', 'maryland', 'anthony village', 'ilupeju', 'magodo',
-    'ojota', 'ketu', 'mile 12', 'ogudu', 'gbagada', 'palmgrove',
-    'palm groove', 'oshodi', 'isolo', 'mafoluku', 'ajao estate',
-    'airport road', 'murtala muhammed airport', 'oke-afa', 'oke afa',
-    'cele', 'ago palace', 'ago-palace', 'okota', 'ejigbo', 'airport'
+    'ikeja', 'allen', 'opebi', 'alausa', 'maryland', 'anthony village',
+    'ilupeju', 'magodo', 'ojota', 'ketu', 'mile 12', 'ogudu', 'gbagada',
+    'palmgrove', 'oshodi', 'isolo', 'mafoluku', 'ajao estate', 'cele',
+    'ago palace', 'okota', 'ejigbo', 'oke afa'
   ],
   'Mainland \u2013 West': [
     'ogba', 'agege', 'ifako', 'berger', 'iju', 'fagba', 'alagbado',
-    'meiran', 'dopemu', 'pen cinema', 'abule egba', 'abule-egba',
-    'ijaiye', 'cement', 'orile agege', 'oko oba'
+    'meiran', 'dopemu', 'pen cinema', 'abule egba'
   ],
   'Mainland \u2013 Outer': [
     'egbeda', 'ipaja', 'ayobo', 'ikotun', 'igando', 'idimu', 'akesan',
-    'command', 'ikola', 'isheri olofin', 'iyana ipaja', 'alimosho',
-    'shasha', 'akowonjo', 'wofun', 'pipeline'
+    'ikola', 'isheri olofin'
   ],
   'Festac / Amuwo / Badagry Axis': [
-    'festac', 'amuwo-odofin', 'amuwo odofin', 'satellite town',
-    'mile 2', 'agboju', 'trade fair', 'ojo', 'iba', 'okokomaiko',
-    'ijanikin', 'badagry', 'ijegun', 'irede', 'alakija',
-    'volks', 'volkswagen', 'alaba', 'alaba international'
+    'festac', 'amuwo', 'amuwo odofin', 'satellite town', 'mile 2',
+    'trade fair', 'ojo', 'iba', 'okokomaiko', 'ijanikin', 'badagry'
   ],
   'Ikorodu Axis': [
-    'ikorodu', 'agric', 'ijede', 'ebute ikorodu', 'baiyeku', 'imota',
-    'agbowa', 'odogunyan', 'ikorodu north', 'laswa', 'isiu',
-    'igbogbo', 'bayeku', 'owutu'
+    'ikorodu', 'agric', 'ijede', 'baiyeku', 'imota', 'agbowa',
+    'odogunyan', 'ikorodu north', 'igbogbo'
   ],
   'Epe Axis': [
-    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin',
-    'epe marina', 'erodo', 'igbile', 'pawa'
+    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin'
   ],
-  'Outside Lagos': [
-    'abeokuta', 'ibadan', 'abuja', 'port harcourt', 'kano', 'kaduna',
-    'enugu', 'benin city', 'warri', 'calabar', 'uyo', 'jos',
-    'ogun state', 'oyo state', 'rivers state', 'delta state',
-    'anambra', 'imo', 'abia', 'edo', 'kwara', 'osun', 'ekiti',
-    'ondo', 'akwa ibom', 'cross river', 'benue', 'nassarawa',
-    'niger state', 'sokoto', 'kebbi', 'zamfara', 'katsina',
-    'jigawa', 'bauchi', 'gombe', 'yobe', 'borno', 'adamawa',
-    'taraba', 'plateau', 'kogi'
-  ]
+  'Outside Lagos': []
 };
 
-function detectZoneFromAddress(formattedAddress) {
-  var lower = formattedAddress.toLowerCase();
-  for (var zoneName in ZONE_KEYWORDS) {
-    if (ZONE_KEYWORDS[zoneName].some(function(kw) { return lower.includes(kw); })) {
-      return zoneName;
+var _gmapsKey = null;
+
+async function detectZoneFromLatLng(lat, lng) {
+  try {
+    if (!_gmapsKey) return null;
+    var response = await fetch(
+      'https://maps.googleapis.com/maps/api/geocode/json?latlng=' + lat + ',' + lng + '&key=' + encodeURIComponent(_gmapsKey)
+    );
+    var data = await response.json();
+    if (!data.results || !data.results.length) return null;
+
+    var components = [];
+    data.results.forEach(function(result) {
+      result.address_components.forEach(function(comp) {
+        if (comp.long_name) components.push(comp.long_name.toLowerCase());
+        if (comp.short_name) components.push(comp.short_name.toLowerCase());
+      });
+    });
+    var formatted = (data.results[0].formatted_address || '').toLowerCase();
+
+    var isLagos = components.some(function(c) { return c.includes('lagos'); }) || formatted.includes('lagos');
+    if (!isLagos) return 'Outside Lagos';
+
+    for (var zone in ZONE_AREAS) {
+      if (zone === 'Outside Lagos') continue;
+      var matched = ZONE_AREAS[zone].some(function(area) {
+        return components.some(function(comp) { return comp.includes(area); }) || formatted.includes(area);
+      });
+      if (matched) return zone;
     }
+    return null;
+  } catch(err) {
+    console.error('Zone detection error:', err);
+    return null;
   }
-  return null;
 }
 
-function autoSelectZone(zoneName) {
-  var sel = document.getElementById('zoneSelect');
-  if (!sel || !zoneName) { showZoneManualPrompt(); return; }
+function autoSelectZoneByName(zoneName) {
+  var opts = document.querySelectorAll('.zone-option');
   var matched = false;
-  for (var i = 0; i < sel.options.length; i++) {
-    if (sel.options[i].dataset.name === zoneName) {
-      sel.selectedIndex = i;
-      onZoneChange();
+  opts.forEach(function(opt) {
+    if (opt.dataset.name === zoneName) {
+      selectZoneOption(opt);
       matched = true;
-      showZoneConfirmation(zoneName, sel.options[i].dataset.price);
-      break;
+      var msg = document.getElementById('zoneMsg');
+      if (msg) {
+        msg.style.color = '#065f46';
+        msg.textContent = '\u2713 Zone auto-detected from your address';
+      }
+    }
+  });
+  if (!matched) {
+    var msg = document.getElementById('zoneMsg');
+    if (msg) {
+      msg.style.color = '#b45309';
+      msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it above.";
     }
   }
-  if (!matched) showZoneManualPrompt();
-}
-
-function showZoneConfirmation(zoneName, price) {
-  var msg = document.getElementById('zoneMsg');
-  if (!msg) {
-    msg = document.createElement('div');
-    msg.id = 'zoneMsg';
-    document.getElementById('zoneSelect').insertAdjacentElement('afterend', msg);
-  }
-  var fee = parseInt(price) || 0;
-  msg.style.cssText = 'font-size:.78rem;margin-top:.3rem;font-weight:600;color:#065f46';
-  msg.textContent = '\u2713 Zone detected: ' + zoneName + ' \u00b7 Delivery fee: ' + (fee === 0 ? 'Free' : fmt(fee));
-}
-
-function showZoneManualPrompt() {
-  var msg = document.getElementById('zoneMsg');
-  if (!msg) {
-    msg = document.createElement('div');
-    msg.id = 'zoneMsg';
-    var sel = document.getElementById('zoneSelect');
-    if (sel) sel.insertAdjacentElement('afterend', msg);
-  }
-  msg.style.cssText = 'font-size:.78rem;margin-top:.3rem;font-weight:600;color:#b45309';
-  msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it manually above.";
 }
 
 function initAddressAutocomplete() {
-  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
-    return;
-  }
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
   var input = document.getElementById('buyerAddress');
   if (!input) return;
 
-  var autocomplete = new google.maps.places.Autocomplete(input, {
-    componentRestrictions: { country: 'ng' },
-    fields: ['formatted_address', 'geometry', 'name'],
-    types: ['geocode', 'establishment']
-  });
+  try {
+    var autocomplete = new google.maps.places.Autocomplete(input, {
+      componentRestrictions: { country: 'ng' },
+      fields: ['formatted_address', 'geometry', 'name'],
+      types: ['geocode', 'establishment']
+    });
 
-  autocomplete.addListener('place_changed', function() {
-    var place = autocomplete.getPlace();
-    if (!place.geometry) return;
+    autocomplete.addListener('place_changed', async function() {
+      var place = autocomplete.getPlace();
+      if (!place || !place.geometry) return;
 
-    var formatted = place.formatted_address || input.value;
-    input.value = formatted;
+      var formatted = place.formatted_address || input.value;
+      input.value = formatted;
 
-    document.getElementById('buyerLat').value = place.geometry.location.lat();
-    document.getElementById('buyerLng').value = place.geometry.location.lng();
+      var lat = place.geometry.location.lat();
+      var lng = place.geometry.location.lng();
+      document.getElementById('buyerLat').value = lat;
+      document.getElementById('buyerLng').value = lng;
 
-    autoSelectZone(detectZoneFromAddress(formatted));
-  });
+      var msg = document.getElementById('zoneMsg');
+      if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Detecting your delivery zone...'; }
 
-  // Style the Google autocomplete dropdown to match brand
-  var style = document.createElement('style');
-  style.textContent =
-    '.pac-container{border-radius:10px;border:1.5px solid rgba(40,16,63,.1);' +
-    'box-shadow:0 8px 24px rgba(40,16,63,.12);font-family:"DM Sans",sans-serif;margin-top:2px}' +
-    '.pac-item{padding:.55rem .9rem;font-size:.88rem;cursor:pointer;color:#1a0a2e}' +
-    '.pac-item:hover{background:#F4EEF9}' +
-    '.pac-item-query{color:#28103F;font-weight:600}' +
-    '.pac-matched{color:#F64484}' +
-    '.pac-icon{display:none}';
-  document.head.appendChild(style);
+      var zoneName = await detectZoneFromLatLng(lat, lng);
+      if (zoneName) {
+        autoSelectZoneByName(zoneName);
+      } else if (msg) {
+        msg.style.color = '#b45309';
+        msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it from the dropdown above.";
+      }
+    });
+  } catch(e) {
+    console.error('Autocomplete init failed:', e);
+  }
+}
+
+function gm_authFailure() {
+  console.error('Google Maps auth failed. Check API key, billing, and enabled APIs.');
+  var hint = document.getElementById('addressHint');
+  if (hint) hint.textContent = 'Address autocomplete unavailable \u2014 type your full address manually.';
 }
 
 async function loadGoogleMaps() {
@@ -1168,13 +1212,41 @@ async function loadGoogleMaps() {
     var result = await db.from('site_content')
       .select('value').eq('key', 'google_maps_key').single();
     var key = result.data && result.data.value;
-    if (!key) {
-      console.warn('Google Maps key not found in site_content');
+    if (!key || key === 'YOUR_ACTUAL_KEY_HERE') {
+      console.warn('Google Maps key not configured');
       return;
     }
+    _gmapsKey = key;
+
+    var style = document.createElement('style');
+    style.textContent =
+      '.gm-err-icon,.gm-err-title,.gm-err-message,.gm-err-container,' +
+      '.gm-style-pbc,.dismissButton,' +
+      'div[style*="background-color: rgb(229, 227, 223)"],' +
+      '.pac-logo::after{display:none!important}' +
+      '.pac-container{border-radius:10px!important;border:1.5px solid rgba(40,16,63,.1)!important;' +
+      'box-shadow:0 8px 24px rgba(40,16,63,.12)!important;font-family:"DM Sans",sans-serif!important;' +
+      'margin-top:2px!important;z-index:9999!important}' +
+      '.pac-item{padding:.55rem .9rem!important;font-size:.88rem!important;' +
+      'cursor:pointer!important;color:#1a0a2e!important;border-top:1px solid rgba(40,16,63,.06)!important}' +
+      '.pac-item:first-child{border-top:none!important}' +
+      '.pac-item:hover{background:#F4EEF9!important}' +
+      '.pac-item-query{color:#28103F!important;font-weight:600!important}' +
+      '.pac-matched{color:#F64484!important}' +
+      '.pac-icon,.pac-icon-marker,.hdpi.pac-icon{display:none!important;width:0!important;' +
+      'height:0!important;min-width:0!important;background-image:none!important}' +
+      '.pac-item-selected{background:#F4EEF9!important}';
+    document.head.appendChild(style);
+
     var script = document.createElement('script');
-    script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&libraries=places&callback=initAddressAutocomplete';
+    script.src = 'https://maps.googleapis.com/maps/api/js?key=' +
+      encodeURIComponent(key) + '&libraries=places&callback=initAddressAutocomplete';
     script.async = true;
+    script.onerror = function() {
+      console.error('Failed to load Google Maps script');
+      var hint = document.getElementById('addressHint');
+      if (hint) hint.textContent = 'Address autocomplete unavailable \u2014 type your full address manually.';
+    };
     document.head.appendChild(script);
   } catch(e) {
     console.warn('Could not load Google Maps:', e);
