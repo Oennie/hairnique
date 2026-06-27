@@ -1166,6 +1166,15 @@ tr:hover td{background:#faf5ff}
 <div class="toast" id="toast"></div>
 
 <script>
+    function esc(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+    }
 const SUPA_URL='https://vtmulueztugoaotouqza.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0bXVsdWV6dHVnb2FvdG91cXphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyMzAzMjUsImV4cCI6MjA5MzgwNjMyNX0.24ei4t75FkYb138AL_Nz1ghsNgFIDihHnI8s6lzKhsk';
 const WA_NUM='2348080081215';
