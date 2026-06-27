@@ -1059,87 +1059,86 @@ function showState4(orderNum, email, name, items, subtotal, total) {
 
 // ═══ GOOGLE MAPS ADDRESS AUTOCOMPLETE ═══════════════════════════════
 
-// ── LAYER 1: KEYWORD MAP ─────────────────────────────────────────
-// Fast check — runs first, no library needed
-// Keys are zone names matching delivery_zones table exactly
+// ── ZONE DETECTION ───────────────────────────────────────────────
+
+// Polygons loaded from Supabase
+let _zonePolygons = []
+
+async function loadZonePolygons() {
+  try {
+    const { data } = await db
+      .from('delivery_zones')
+      .select('name, polygon')
+      .eq('is_active', true)
+      .not('polygon', 'is', null)
+    _zonePolygons = data || []
+    console.log('Polygons loaded:', _zonePolygons.length)
+  } catch (e) {
+    console.warn('Could not load polygons:', e)
+  }
+}
+
+// Keyword map — zone names must match delivery_zones table EXACTLY
 const ZONE_KEYWORDS = {
   'Lekki / VI / Ikoyi': [
-    'victoria island', 'v.i', 'ikoyi', 'oniru', 'lekki phase 1',
-    'lekki phase i', 'lekki 1', 'osborne', 'banana island', 'parkview',
-    'falomo', 'awolowo road', 'bourdillon', 'kingsway', 'eti-osa',
-    'ozumba mbadiwe', 'ahmadu bello', 'sanusi fafunwa'
+    'victoria island', 'ikoyi', 'oniru', 'lekki phase 1', 'lekki phase i',
+    'osborne', 'banana island', 'parkview', 'falomo', 'awolowo road',
+    'bourdillon', 'eti-osa', 'ozumba mbadiwe', 'ahmadu bello', 'vi,'
   ],
   'Lekki Phase 2 / Ajah': [
-    'lekki phase 2', 'lekki phase ii', 'lekki 2', 'chevron', 'agungi',
-    'igbo efon', 'jakande', 'ajah', 'abraham adesanya', 'sangotedo',
-    'abijo', 'awoyaya', 'lakowe', 'bogije', 'eleko', 'ibeju',
-    'free trade zone', 'vgc', 'orchid road', 'oral estate',
-    'alpha beach', 'ikota', 'lekki conservation', 'megamound'
+    'lekki phase 2', 'lekki phase ii', 'chevron', 'agungi', 'igbo efon',
+    'jakande', 'ajah', 'abraham adesanya', 'sangotedo', 'abijo', 'awoyaya',
+    'lakowe', 'bogije', 'eleko', 'ibeju', 'vgc', 'orchid road', 'ikota'
   ],
   'Island Other': [
-    'lagos island', 'marina', 'cms', 'broad street', 'idumota',
-    'balogun', 'isale eko', 'eko atlantic', 'apapa', 'tin can',
-    'ijora', 'apapa gra', 'carter bridge', 'epetedo', 'lafiaji',
-    'nnamdi azikiwe', 'customs street', 'liverpool road'
+    'lagos island', 'marina,', 'idumota', 'balogun', 'isale eko',
+    'eko atlantic', 'apapa', 'tin can', 'ijora', 'broad street', 'cms,'
   ],
   'Mainland – Close': [
-    'yaba', 'ebute metta', 'ebute-metta', 'surulere', 'ojuelegba',
-    'mushin', 'costain', 'jibowu', 'fadeyi', 'somolu', 'bariga',
-    'akoka', 'sabo', 'palm avenue', 'eric moore', 'aguda', 'itire',
-    'shitta', 'iponri', 'western avenue', 'bode thomas', 'lawanson',
-    'randle', 'alaka', 'herbert macaulay'
+    'yaba', 'ebute metta', 'surulere', 'ojuelegba', 'mushin', 'costain',
+    'jibowu', 'fadeyi', 'somolu', 'bariga', 'akoka', 'sabo,', 'aguda',
+    'itire', 'shitta', 'bode thomas', 'lawanson', 'randle'
   ],
   'Mainland – Central': [
-    'ikeja', 'allen', 'opebi', 'alausa', 'maryland', 'anthony',
-    'ilupeju', 'magodo', 'ojota', 'ketu', 'mile 12', 'ogudu',
-    'gbagada', 'palmgrove', 'oshodi', 'isolo', 'mafoluku',
-    'ajao estate', 'airport road', 'murtala muhammed', 'oke-afa',
-    'oke afa', 'cele', 'ago palace', 'okota', 'ejigbo',
-    'ikeja gra', 'oregun', 'ojodu', 'berger', 'omole',
-    'isheri north', 'gra ikeja'
+    'ikeja', 'allen avenue', 'opebi', 'alausa', 'maryland', 'anthony village',
+    'ilupeju', 'magodo', 'ojota', 'ketu', 'mile 12', 'ogudu', 'gbagada',
+    'palmgrove', 'oshodi', 'isolo', 'mafoluku',  'shogunle', 'ajao estate',
+    'oke afa', 'cele,', 'ago palace', 'okota', 'ejigbo', 'oregun',
+    'murtala muhammed airport', 'airport road, ikeja'
   ],
   'Mainland – West': [
     'ogba', 'agege', 'ifako', 'iju', 'fagba', 'alagbado', 'meiran',
-    'dopemu', 'pen cinema', 'abule egba', 'abule-egba', 'iyana ipaja',
-    'new oko oba', 'orile agege', 'oko oba', 'ifako-ijaiye',
+    'dopemu', 'pen cinema', 'abule egba', 'iyana ipaja', 'new oko oba',
     'egbeda', 'ipaja', 'ayobo', 'ikotun', 'igando', 'idimu',
-    'akesan', 'ikola', 'isheri olofin', 'lasu', 'ijedodo',
-    'igbologun', 'alimosho', 'shasha', 'iyana ejigbo'
+    'akesan', 'ikola', 'isheri olofin', 'alimosho', 'shasha'
   ],
   'Festac / Amuwo / Badagry Axis': [
-    'festac', 'amuwo', 'amuwo-odofin', 'satellite town', 'mile 2',
-    'agboju', 'trade fair', 'ojo', 'iba', 'okokomaiko', 'ijanikin',
-    'badagry', 'seme', 'agbara', 'alakija', 'volks', 'mile2'
+    'festac', 'amuwo', 'satellite town', 'mile 2,', 'agboju',
+    'trade fair', 'ojo,', 'iba,', 'okokomaiko', 'ijanikin', 'badagry',
+    'alakija', 'volks'
   ],
   'Ikorodu Axis': [
-    'ikorodu', 'agric', 'ijede', 'baiyeku', 'imota', 'agbowa',
-    'odogunyan', 'ikorodu north', 'igbogbo', 'lasunwon', 'parafa',
-    'ebute ikorodu', 'owutu'
+    'ikorodu', 'agric,', 'ijede', 'baiyeku', 'imota', 'agbowa',
+    'odogunyan', 'igbogbo', 'owutu'
   ],
   'Epe Axis': [
-    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin',
-    'agbowa epe', 'ketu epe', 'itoikin', 'epe resort'
+    'epe,', 'eredo', 'mojoda', 'poka,', 'noforija', 'ejinrin', 'itoikin'
   ],
   'Outside Lagos': [
-    'abuja', 'port harcourt', 'ibadan', 'kano', 'kaduna',
-    'benin city', 'enugu', 'owerri', 'warri', 'calabar', 'uyo',
-    'jos', 'abeokuta', 'ogun state', 'oyo state', 'rivers state',
-    'delta state', 'anambra', 'imo state', 'abia', 'edo state',
-    'borno', 'sokoto', 'kebbi', 'katsina', 'zamfara', 'niger state',
-    'kwara', 'kogi', 'nassarawa', 'benue', 'plateau', 'taraba',
-    'adamawa', 'gombe', 'bauchi', 'yobe', 'jigawa', 'bayelsa',
-    'cross river', 'akwa ibom', 'ebonyi', 'ekiti', 'osun', 'ondo',
-    'ogun', 'ghana', 'uk', 'usa', 'london', 'houston'
+    'abuja', 'port harcourt', 'ibadan', 'kano', 'kaduna', 'enugu',
+    'owerri', 'warri', 'calabar', 'abeokuta', 'ogun state',
+    'ondo state', 'ekiti', 'osun', 'kwara', 'niger state',
+    'bayelsa', 'rivers state', 'delta state', 'edo state',
+    'cross river', 'akwa ibom', 'anambra', 'imo state'
   ]
 }
 
-function detectZoneByKeyword(formattedAddress) {
-  const lower = formattedAddress.toLowerCase()
+function detectZoneByKeyword(address) {
+  const lower = address.toLowerCase()
   for (const [zoneName, keywords] of Object.entries(ZONE_KEYWORDS)) {
     for (const kw of keywords) {
-      const pattern = new RegExp('\\b' + kw.replace(/[-\/]/g, '.') + '\\b', 'i')
-      if (pattern.test(lower)) {
-        console.log("Keyword match: " + kw + " -> " + zoneName)
+      if (lower.includes(kw)) {
+        console.log('Keyword hit:', kw, '→', zoneName)
         return zoneName
       }
     }
@@ -1147,68 +1146,77 @@ function detectZoneByKeyword(formattedAddress) {
   return null
 }
 
-// ── LAYER 2: POLYGON CHECK ───────────────────────────────────────
-let deliveryZonePolygons = []
-
-async function loadZonePolygons() {
-  const { data, error } = await db
-    .from('delivery_zones')
-    .select('id, name, price, polygon')
-    .eq('is_active', true)
-    .not('polygon', 'is', null)
-    .order('sort_order')
-
-  if (error) {
-    console.warn('Could not load zone polygons:', error.message)
-    return
-  }
-  deliveryZonePolygons = data || []
-  console.log("Loaded " + deliveryZonePolygons.length + " zone polygons")
-}
-
 function detectZoneByPolygon(lat, lng) {
-  if (!deliveryZonePolygons.length) {
-    console.warn('No polygons loaded — skipping polygon check')
-    return null
-  }
-  if (typeof turf === 'undefined') {
-    console.warn('Turf.js not loaded — skipping polygon check')
-    return null
-  }
-
-  const point = turf.point([lng, lat])
-
-  for (const zone of deliveryZonePolygons) {
+  if (!_zonePolygons.length) return null
+  if (typeof turf === 'undefined') return null
+  const pt = turf.point([lng, lat])
+  for (const z of _zonePolygons) {
     try {
-      const feature = { type: 'Feature', geometry: zone.polygon, properties: {} }
-      if (turf.booleanPointInPolygon(point, feature)) {
-        console.log("Polygon match: " + zone.name)
-        return { id: zone.id, name: zone.name, price: zone.price }
+      if (turf.booleanPointInPolygon(pt, { type: 'Feature', geometry: z.polygon, properties: {} })) {
+        console.log('Polygon hit:', z.name)
+        return z.name
       }
-    } catch (err) {
-      console.warn('Polygon check failed for', zone.name, err.message)
+    } catch (e) {
+      console.warn('Polygon error for', z.name)
     }
   }
-
   return null
 }
 
-// ── COMBINED DETECTION ───────────────────────────────────────────
-function detectZone(formattedAddress, lat, lng) {
-  const keywordZoneName = detectZoneByKeyword(formattedAddress)
-  if (keywordZoneName) {
-    console.log('Zone via keyword:', keywordZoneName)
-    return keywordZoneName
+function runZoneDetection(address, lat, lng) {
+  console.log('Running zone detection for:', address, lat, lng)
+
+  // Layer 1: keywords
+  let zone = detectZoneByKeyword(address)
+  if (zone) {
+    console.log('Zone from keywords:', zone)
+    applyDetectedZone(zone)
+    return
   }
 
-  const polygonZone = detectZoneByPolygon(lat, lng)
-  if (polygonZone) {
-    console.log('Zone via polygon:', polygonZone.name)
-    return polygonZone.name
+  // Layer 2: polygon
+  zone = detectZoneByPolygon(lat, lng)
+  if (zone) {
+    console.log('Zone from polygon:', zone)
+    applyDetectedZone(zone)
+    return
   }
 
-  console.log('No match found — defaulting to Outside Lagos')
-  return 'Outside Lagos'
+  // Layer 3: Outside Lagos fallback
+  console.log('No match — defaulting to Outside Lagos')
+  applyDetectedZone('Outside Lagos')
+}
+
+function applyDetectedZone(zoneName) {
+  const msg = document.getElementById('zoneMsg')
+
+  // Find the zone option button with matching name
+  const allOptions = document.querySelectorAll('.zone-option')
+  console.log('Zone options found:', allOptions.length)
+
+  let matched = false
+  allOptions.forEach(opt => {
+    console.log('Checking option:', opt.dataset.name, 'vs', zoneName)
+    if (opt.dataset.name === zoneName) {
+      selectZoneOption(opt)
+      matched = true
+      if (msg) {
+        msg.style.color = zoneName === 'Outside Lagos' ? '#b45309' : '#065f46'
+        msg.textContent = zoneName === 'Outside Lagos'
+          ? '⚠️ Outside Lagos — please confirm your zone above'
+          : '✓ Zone detected: ' + zoneName
+      }
+    }
+  })
+
+  if (!matched) {
+    console.warn('No dropdown option matched zone name:', zoneName)
+    console.warn('Available options:', [...allOptions].map(o => o.dataset.name))
+    if (msg) {
+      msg.style.color = '#b45309'
+      msg.textContent = 'Please select your delivery zone above'
+    }
+  }
 }
 
 function initAddressAutocomplete() {
@@ -1228,13 +1236,27 @@ function initAddressAutocomplete() {
 
   autocomplete.addListener('place_changed', () => {
     const place = autocomplete.getPlace()
-    if (!place || !place.geometry || !place.geometry.location) return
 
-    const formatted = place.formatted_address || input.value
+    console.log('place_changed fired')
+    console.log('place:', place)
+
+    if (!place) {
+      console.warn('No place returned')
+      return
+    }
+    if (!place.geometry || !place.geometry.location) {
+      console.warn('No geometry in place result')
+      return
+    }
+
+    const formatted = place.formatted_address || place.name || input.value
     input.value = formatted
 
     const lat = place.geometry.location.lat()
     const lng = place.geometry.location.lng()
+
+    console.log('Formatted address:', formatted)
+    console.log('Coordinates:', lat, lng)
 
     document.getElementById('buyerLat').value = lat
     document.getElementById('buyerLng').value = lng
@@ -1245,16 +1267,10 @@ function initAddressAutocomplete() {
       msg.textContent = 'Detecting your delivery zone...'
     }
 
-    // Run combined detection
-    const zoneName = detectZone(formatted, lat, lng)
-    autoSelectZoneByName(zoneName)
-
-    if (msg && zoneName) {
-      msg.style.color = zoneName === 'Outside Lagos' ? 'var(--amber)' : '#065f46'
-      msg.textContent = zoneName === 'Outside Lagos'
-        ? '⚠️ Outside Lagos detected — delivery fee applies. Please confirm your zone above.'
-        : '✓ Zone detected: ' + zoneName
-    }
+    // Small delay to ensure dropdown options are rendered
+    setTimeout(() => {
+      runZoneDetection(formatted, lat, lng)
+    }, 100)
   })
 
   // Style Google autocomplete dropdown to match brand
