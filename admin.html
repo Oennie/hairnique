@@ -1406,7 +1406,7 @@ async function updateStatus(id,status,el,phone,name,orderNum,email){
     confirmed:`Hi ${name}! 🌿 Your Hairnique order ${orderNum} is confirmed. We're getting it ready!`,
     processing:`Hi ${name}! 📦 Your Hairnique order ${orderNum} is being packed for dispatch.`,
     shipped:`Hi ${name}! 🚚 Your Hairnique order ${orderNum} is on its way!`,
-    delivered:`Hi ${name}! 🌟 Your Hairnique order ${orderNum} has been delivered. We'd love your feedback: https://hairnique.vercel.app/feedback.html?order=${orderNum}`,
+    delivered:`Hi ${name}! 🌟 Your Hairnique order ${orderNum} has been delivered. We'd love your feedback: https://hairniqueng.com/feedback.html?order=${orderNum}`,
     cancelled:`Hi ${name}, your Hairnique order ${orderNum} has been cancelled. Please reach out if you have questions. 💬`
   };
   if(msgs[status]&&confirm(`Send WhatsApp to ${name} about "${status}"?`)){

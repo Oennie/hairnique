@@ -128,12 +128,12 @@
   <link rel="dns-prefetch" href="https://js.paystack.co">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">  <link rel="canonical" href="https://hairnique.vercel.app/product.html" id="canonicalTag">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">  <link rel="canonical" href="https://hairniqueng.com/product.html" id="canonicalTag">
   <meta property="og:type" content="product">
-  <meta property="og:url" content="https://hairnique.vercel.app/product.html" id="ogUrl">
+  <meta property="og:url" content="https://hairniqueng.com/product.html" id="ogUrl">
   <meta property="og:title" content="Hairnique - Natural Hair Care" id="ogTitle">
   <meta property="og:description" content="Quality natural hair care products at Hairnique, Lagos Nigeria." id="ogDesc">
-  <meta property="og:image" content="https://hairnique.vercel.app/og-image.png" id="ogImage">
+  <meta property="og:image" content="https://hairniqueng.com/og-image.png" id="ogImage">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale" content="en_NG">
@@ -141,7 +141,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Hairnique - Natural Hair Care" id="twTitle">
   <meta name="twitter:description" content="Quality natural hair care products at Hairnique." id="twDesc">
-  <meta name="twitter:image" content="https://hairnique.vercel.app/og-image.png" id="twImage">
+  <meta name="twitter:image" content="https://hairniqueng.com/og-image.png" id="twImage">
 </head>
 <body>
 <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -267,8 +267,8 @@ async function loadProduct(id) {
     var metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', (p.description ? p.description.substring(0,150) : p.name) + ' - Available at Hairnique, Lagos Nigeria.');
     var canonEl = document.getElementById('canonicalTag');
-    if (canonEl) canonEl.setAttribute('href', 'https://hairnique.vercel.app/product.html?id=' + p.id);
-    var ogUrl  = document.getElementById('ogUrl');   if (ogUrl)  ogUrl.setAttribute('content',  'https://hairnique.vercel.app/product.html?id=' + p.id);
+    if (canonEl) canonEl.setAttribute('href', 'https://hairniqueng.com/product.html?id=' + p.id);
+    var ogUrl  = document.getElementById('ogUrl');   if (ogUrl)  ogUrl.setAttribute('content',  'https://hairniqueng.com/product.html?id=' + p.id);
     var ogT    = document.getElementById('ogTitle');  if (ogT)   ogT.setAttribute('content',   p.name + ' - Hairnique');
     var ogD    = document.getElementById('ogDesc');   if (ogD)   ogD.setAttribute('content',   p.description ? p.description.substring(0,150) : p.name);
     if (p.image_url) { var ogImg = document.getElementById('ogImage'); if (ogImg) ogImg.setAttribute('content', p.image_url); var twImg = document.getElementById('twImage'); if (twImg) twImg.setAttribute('content', p.image_url); }
@@ -307,8 +307,8 @@ async function loadProduct(id) {
     var metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', (p.description ? p.description.substring(0,150) : p.name) + ' - Available at Hairnique, Lagos Nigeria.');
     var canonEl = document.getElementById('canonicalTag');
-    if (canonEl) canonEl.setAttribute('href', 'https://hairnique.vercel.app/product.html?id=' + p.id);
-    var ogUrl  = document.getElementById('ogUrl');   if (ogUrl)  ogUrl.setAttribute('content',  'https://hairnique.vercel.app/product.html?id=' + p.id);
+    if (canonEl) canonEl.setAttribute('href', 'https://hairniqueng.com/product.html?id=' + p.id);
+    var ogUrl  = document.getElementById('ogUrl');   if (ogUrl)  ogUrl.setAttribute('content',  'https://hairniqueng.com/product.html?id=' + p.id);
     var ogT    = document.getElementById('ogTitle');  if (ogT)   ogT.setAttribute('content',   p.name + ' - Hairnique');
     var ogD    = document.getElementById('ogDesc');   if (ogD)   ogD.setAttribute('content',   p.description ? p.description.substring(0,150) : p.name);
     if (p.image_url) { var ogImg = document.getElementById('ogImage'); if (ogImg) ogImg.setAttribute('content', p.image_url); var twImg = document.getElementById('twImage'); if (twImg) twImg.setAttribute('content', p.image_url); }

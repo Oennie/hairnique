@@ -306,13 +306,14 @@
   <link rel="dns-prefetch" href="https://js.paystack.co">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">  <link rel="canonical" href="https://hairnique.vercel.app/checkout.html">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.svg">  <link rel="canonical" href="https://hairniqueng.com/checkout.html">
   <meta name="robots" content="noindex, nofollow">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://hairnique.vercel.app/checkout.html">
+  <meta property="og:url" content="https://hairniqueng.com/checkout.html">
   <meta property="og:title" content="Checkout - Hairnique">
-  <meta property="og:image" content="https://hairnique.vercel.app/og-image.png">
+  <meta property="og:image" content="https://hairniqueng.com/og-image.png">
   <meta property="og:site_name" content="Hairnique">
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 </head>
 <body>
 <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -569,7 +570,12 @@ document.addEventListener('DOMContentLoaded', function() {
   initNav('checkout');
   cart = getCart();
   renderState1();
-  loadDeliveryZones();
+  Promise.all([
+    loadDeliveryZones(),
+    loadZonePolygons()
+  ]).then(() => {
+    console.log('Zones and polygons ready');
+  });
   loadGoogleMaps();
 });
 
@@ -1053,154 +1059,227 @@ function showState4(orderNum, email, name, items, subtotal, total) {
 
 // ═══ GOOGLE MAPS ADDRESS AUTOCOMPLETE ═══════════════════════════════
 
-var ZONE_AREAS = {
+// ── LAYER 1: KEYWORD MAP ─────────────────────────────────────────
+// Fast check — runs first, no library needed
+// Keys are zone names matching delivery_zones table exactly
+const ZONE_KEYWORDS = {
   'Lekki / VI / Ikoyi': [
-    'victoria island', 'ikoyi', 'oniru', 'lekki phase 1', 'lekki phase i',
-    'osborne', 'banana island', 'parkview', 'eti-osa', 'falomo'
+    'victoria island', 'v.i', 'ikoyi', 'oniru', 'lekki phase 1',
+    'lekki phase i', 'lekki 1', 'osborne', 'banana island', 'parkview',
+    'falomo', 'awolowo road', 'bourdillon', 'kingsway', 'eti-osa',
+    'ozumba mbadiwe', 'ahmadu bello', 'sanusi fafunwa'
   ],
   'Lekki Phase 2 / Ajah': [
-    'lekki phase 2', 'lekki phase ii', 'chevron', 'agungi', 'igbo efon',
-    'jakande', 'ajah', 'abraham adesanya', 'sangotedo', 'abijo', 'awoyaya',
-    'lakowe', 'bogije', 'eleko', 'ibeju', 'free trade zone', 'vgc',
-    'oral estate', 'orchid'
+    'lekki phase 2', 'lekki phase ii', 'lekki 2', 'chevron', 'agungi',
+    'igbo efon', 'jakande', 'ajah', 'abraham adesanya', 'sangotedo',
+    'abijo', 'awoyaya', 'lakowe', 'bogije', 'eleko', 'ibeju',
+    'free trade zone', 'vgc', 'orchid road', 'oral estate',
+    'alpha beach', 'ikota', 'lekki conservation', 'megamound'
   ],
   'Island Other': [
-    'lagos island', 'marina', 'idumota', 'balogun', 'isale eko',
-    'eko atlantic', 'apapa', 'tin can', 'ijora', 'lagos island local government'
+    'lagos island', 'marina', 'cms', 'broad street', 'idumota',
+    'balogun', 'isale eko', 'eko atlantic', 'apapa', 'tin can',
+    'ijora', 'apapa gra', 'carter bridge', 'epetedo', 'lafiaji',
+    'nnamdi azikiwe', 'customs street', 'liverpool road'
   ],
-  'Mainland \u2013 Close': [
-    'yaba', 'ebute metta', 'surulere', 'ojuelegba', 'mushin', 'costain',
-    'jibowu', 'fadeyi', 'somolu', 'bariga', 'akoka', 'sabo', 'aguda',
-    'itire', 'shitta', 'iponri'
+  'Mainland – Close': [
+    'yaba', 'ebute metta', 'ebute-metta', 'surulere', 'ojuelegba',
+    'mushin', 'costain', 'jibowu', 'fadeyi', 'somolu', 'bariga',
+    'akoka', 'sabo', 'palm avenue', 'eric moore', 'aguda', 'itire',
+    'shitta', 'iponri', 'western avenue', 'bode thomas', 'lawanson',
+    'randle', 'alaka', 'herbert macaulay'
   ],
-  'Mainland \u2013 Central': [
-    'ikeja', 'allen', 'opebi', 'alausa', 'maryland', 'anthony village',
-    'ilupeju', 'magodo', 'ojota', 'ketu', 'mile 12', 'ogudu', 'gbagada',
-    'palmgrove', 'oshodi', 'isolo', 'mafoluku', 'ajao estate', 'cele',
-    'ago palace', 'okota', 'ejigbo', 'oke afa'
+  'Mainland – Central': [
+    'ikeja', 'allen', 'opebi', 'alausa', 'maryland', 'anthony',
+    'ilupeju', 'magodo', 'ojota', 'ketu', 'mile 12', 'ogudu',
+    'gbagada', 'palmgrove', 'oshodi', 'isolo', 'mafoluku',
+    'ajao estate', 'airport road', 'murtala muhammed', 'oke-afa',
+    'oke afa', 'cele', 'ago palace', 'okota', 'ejigbo',
+    'ikeja gra', 'oregun', 'ojodu', 'berger', 'omole',
+    'isheri north', 'gra ikeja'
   ],
-  'Mainland \u2013 West': [
-    'ogba', 'agege', 'ifako', 'berger', 'iju', 'fagba', 'alagbado',
-    'meiran', 'dopemu', 'pen cinema', 'abule egba'
-  ],
-  'Mainland \u2013 Outer': [
-    'egbeda', 'ipaja', 'ayobo', 'ikotun', 'igando', 'idimu', 'akesan',
-    'ikola', 'isheri olofin'
+  'Mainland – West': [
+    'ogba', 'agege', 'ifako', 'iju', 'fagba', 'alagbado', 'meiran',
+    'dopemu', 'pen cinema', 'abule egba', 'abule-egba', 'iyana ipaja',
+    'new oko oba', 'orile agege', 'oko oba', 'ifako-ijaiye',
+    'egbeda', 'ipaja', 'ayobo', 'ikotun', 'igando', 'idimu',
+    'akesan', 'ikola', 'isheri olofin', 'lasu', 'ijedodo',
+    'igbologun', 'alimosho', 'shasha', 'iyana ejigbo'
   ],
   'Festac / Amuwo / Badagry Axis': [
-    'festac', 'amuwo', 'amuwo odofin', 'satellite town', 'mile 2',
-    'trade fair', 'ojo', 'iba', 'okokomaiko', 'ijanikin', 'badagry'
+    'festac', 'amuwo', 'amuwo-odofin', 'satellite town', 'mile 2',
+    'agboju', 'trade fair', 'ojo', 'iba', 'okokomaiko', 'ijanikin',
+    'badagry', 'seme', 'agbara', 'alakija', 'volks', 'mile2'
   ],
   'Ikorodu Axis': [
     'ikorodu', 'agric', 'ijede', 'baiyeku', 'imota', 'agbowa',
-    'odogunyan', 'ikorodu north', 'igbogbo'
+    'odogunyan', 'ikorodu north', 'igbogbo', 'lasunwon', 'parafa',
+    'ebute ikorodu', 'owutu'
   ],
   'Epe Axis': [
-    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin'
+    'epe', 'eredo', 'mojoda', 'poka', 'noforija', 'ejinrin',
+    'agbowa epe', 'ketu epe', 'itoikin', 'epe resort'
   ],
-  'Outside Lagos': []
-};
-
-var _gmapsKey = null;
-
-async function detectZoneFromLatLng(lat, lng) {
-  try {
-    if (!_gmapsKey) return null;
-    var response = await fetch(
-      'https://maps.googleapis.com/maps/api/geocode/json?latlng=' + lat + ',' + lng + '&key=' + encodeURIComponent(_gmapsKey)
-    );
-    var data = await response.json();
-    if (!data.results || !data.results.length) return null;
-
-    var components = [];
-    data.results.forEach(function(result) {
-      result.address_components.forEach(function(comp) {
-        if (comp.long_name) components.push(comp.long_name.toLowerCase());
-        if (comp.short_name) components.push(comp.short_name.toLowerCase());
-      });
-    });
-    var formatted = (data.results[0].formatted_address || '').toLowerCase();
-
-    var isLagos = components.some(function(c) { return c.includes('lagos'); }) || formatted.includes('lagos');
-    if (!isLagos) return 'Outside Lagos';
-
-    for (var zone in ZONE_AREAS) {
-      if (zone === 'Outside Lagos') continue;
-      var matched = ZONE_AREAS[zone].some(function(area) {
-        return components.some(function(comp) { return comp.includes(area); }) || formatted.includes(area);
-      });
-      if (matched) return zone;
-    }
-    return null;
-  } catch(err) {
-    console.error('Zone detection error:', err);
-    return null;
-  }
+  'Outside Lagos': [
+    'abuja', 'port harcourt', 'ibadan', 'kano', 'kaduna',
+    'benin city', 'enugu', 'owerri', 'warri', 'calabar', 'uyo',
+    'jos', 'abeokuta', 'ogun state', 'oyo state', 'rivers state',
+    'delta state', 'anambra', 'imo state', 'abia', 'edo state',
+    'borno', 'sokoto', 'kebbi', 'katsina', 'zamfara', 'niger state',
+    'kwara', 'kogi', 'nassarawa', 'benue', 'plateau', 'taraba',
+    'adamawa', 'gombe', 'bauchi', 'yobe', 'jigawa', 'bayelsa',
+    'cross river', 'akwa ibom', 'ebonyi', 'ekiti', 'osun', 'ondo',
+    'ogun', 'ghana', 'uk', 'usa', 'london', 'houston'
+  ]
 }
 
-function autoSelectZoneByName(zoneName) {
-  var opts = document.querySelectorAll('.zone-option');
-  var matched = false;
-  opts.forEach(function(opt) {
-    if (opt.dataset.name === zoneName) {
-      selectZoneOption(opt);
-      matched = true;
-      var msg = document.getElementById('zoneMsg');
-      if (msg) {
-        msg.style.color = '#065f46';
-        msg.textContent = '\u2713 Zone auto-detected from your address';
+function detectZoneByKeyword(formattedAddress) {
+  const lower = formattedAddress.toLowerCase()
+  for (const [zoneName, keywords] of Object.entries(ZONE_KEYWORDS)) {
+    for (const kw of keywords) {
+      const pattern = new RegExp('\\b' + kw.replace(/[-\/]/g, '.') + '\\b', 'i')
+      if (pattern.test(lower)) {
+        console.log(Keyword match: " + kw + " →  + zoneName)
+        return zoneName
       }
     }
-  });
-  if (!matched) {
-    var msg = document.getElementById('zoneMsg');
-    if (msg) {
-      msg.style.color = '#b45309';
-      msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it above.";
+  }
+  return null
+}
+
+// ── LAYER 2: POLYGON CHECK ───────────────────────────────────────
+let deliveryZonePolygons = []
+
+async function loadZonePolygons() {
+  const { data, error } = await db
+    .from('delivery_zones')
+    .select('id, name, price, polygon')
+    .eq('is_active', true)
+    .not('polygon', 'is', null)
+    .order('sort_order')
+
+  if (error) {
+    console.warn('Could not load zone polygons:', error.message)
+    return
+  }
+  deliveryZonePolygons = data || []
+  console.log(Loaded  + deliveryZonePolygons.length +  zone polygons)
+}
+
+function detectZoneByPolygon(lat, lng) {
+  if (!deliveryZonePolygons.length) {
+    console.warn('No polygons loaded — skipping polygon check')
+    return null
+  }
+  if (typeof turf === 'undefined') {
+    console.warn('Turf.js not loaded — skipping polygon check')
+    return null
+  }
+
+  const point = turf.point([lng, lat])
+
+  for (const zone of deliveryZonePolygons) {
+    try {
+      const feature = { type: 'Feature', geometry: zone.polygon, properties: {} }
+      if (turf.booleanPointInPolygon(point, feature)) {
+        console.log(Polygon match:  + zone.name)
+        return { id: zone.id, name: zone.name, price: zone.price }
+      }
+    } catch (err) {
+      console.warn('Polygon check failed for', zone.name, err.message)
     }
   }
+
+  return null
+}
+
+// ── COMBINED DETECTION ───────────────────────────────────────────
+function detectZone(formattedAddress, lat, lng) {
+  const keywordZoneName = detectZoneByKeyword(formattedAddress)
+  if (keywordZoneName) {
+    console.log('Zone via keyword:', keywordZoneName)
+    return keywordZoneName
+  }
+
+  const polygonZone = detectZoneByPolygon(lat, lng)
+  if (polygonZone) {
+    console.log('Zone via polygon:', polygonZone.name)
+    return polygonZone.name
+  }
+
+  console.log('No match found — defaulting to Outside Lagos')
+  return 'Outside Lagos'
 }
 
 function initAddressAutocomplete() {
-  if (typeof google === 'undefined' || !google.maps || !google.maps.places) return;
-  var input = document.getElementById('buyerAddress');
-  if (!input) return;
-
-  try {
-    var autocomplete = new google.maps.places.Autocomplete(input, {
-      componentRestrictions: { country: 'ng' },
-      fields: ['formatted_address', 'geometry', 'name'],
-      types: ['geocode', 'establishment']
-    });
-
-    autocomplete.addListener('place_changed', async function() {
-      var place = autocomplete.getPlace();
-      if (!place || !place.geometry) return;
-
-      var formatted = place.formatted_address || input.value;
-      input.value = formatted;
-
-      var lat = place.geometry.location.lat();
-      var lng = place.geometry.location.lng();
-      document.getElementById('buyerLat').value = lat;
-      document.getElementById('buyerLng').value = lng;
-
-      var msg = document.getElementById('zoneMsg');
-      if (msg) { msg.style.color = 'var(--muted)'; msg.textContent = 'Detecting your delivery zone...'; }
-
-      var zoneName = await detectZoneFromLatLng(lat, lng);
-      if (zoneName) {
-        autoSelectZoneByName(zoneName);
-      } else if (msg) {
-        msg.style.color = '#b45309';
-        msg.textContent = "We couldn\u2019t auto-detect your zone \u2014 please select it from the dropdown above.";
-      }
-    });
-  } catch(e) {
-    console.error('Autocomplete init failed:', e);
+  if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+    setTimeout(initAddressAutocomplete, 300)
+    return
   }
-}
 
+  const input = document.getElementById('buyerAddress')
+  if (!input) return
+
+  const autocomplete = new google.maps.places.Autocomplete(input, {
+    componentRestrictions: { country: 'ng' },
+    fields: ['formatted_address', 'geometry', 'name'],
+    types: ['geocode', 'establishment']
+  })
+
+  autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace()
+    if (!place || !place.geometry || !place.geometry.location) return
+
+    const formatted = place.formatted_address || input.value
+    input.value = formatted
+
+    const lat = place.geometry.location.lat()
+    const lng = place.geometry.location.lng()
+
+    document.getElementById('buyerLat').value = lat
+    document.getElementById('buyerLng').value = lng
+
+    const msg = document.getElementById('zoneMsg')
+    if (msg) {
+      msg.style.color = 'var(--muted)'
+      msg.textContent = 'Detecting your delivery zone...'
+    }
+
+    // Run combined detection
+    const zoneName = detectZone(formatted, lat, lng)
+    autoSelectZoneByName(zoneName)
+
+    if (msg && zoneName) {
+      msg.style.color = zoneName === 'Outside Lagos' ? 'var(--amber)' : '#065f46'
+      msg.textContent = zoneName === 'Outside Lagos'
+        ? '⚠️ Outside Lagos detected — delivery fee applies. Please confirm your zone above.'
+        : '✓ Zone detected: ' + zoneName
+    }
+  })
+
+  // Style Google autocomplete dropdown to match brand
+  const style = document.createElement('style')
+  style.textContent = 
+    .pac-container {
+      border-radius: 10px;
+      border: 1.5px solid rgba(40,16,63,.15);
+      box-shadow: 0 8px 24px rgba(40,16,63,.12);
+      font-family: 'DM Sans', sans-serif;
+      margin-top: 2px;
+    }
+    .pac-item {
+      padding: .55rem .9rem;
+      font-size: .88rem;
+      cursor: pointer;
+      color: #1a0a2e;
+    }
+    .pac-item:hover, .pac-item-selected { background: #F4EEF9; }
+    .pac-item-query { color: #28103F; font-weight: 600; }
+    .pac-matched { color: #F64484; }
+    .pac-icon { display: none; }
+  
+  document.head.appendChild(style)
+}
 function gm_authFailure() {
   console.error('Google Maps auth failed. Check API key, billing, and enabled APIs.');
   var hint = document.getElementById('addressHint');
