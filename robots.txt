@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 
-Sitemap: https://hairnique.vercel.app/sitemap.xml
+Sitemap: https://hairniqueng.com/sitemap.xml
