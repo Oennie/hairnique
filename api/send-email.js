@@ -1,33 +1,23 @@
 export default async function handler(req, res) {
-  // Handle CORS preflight
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end()
-  }
-
+  // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  let body = req.body
+  // CORS headers — allow your domain only
+  res.setHeader('Access-Control-Allow-Origin', 'https://hairniqueng.com')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  // Parse body if it came in as a string
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body) } catch (e) {
-      return res.status(400).json({ error: 'Invalid JSON body' })
-    }
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
   }
 
-  const { to, subject, html, resendKey } = body || {}
+  const { to, subject, html, resendKey } = req.body
 
   if (!to || !subject || !html || !resendKey) {
-    return res.status(400).json({
-      error: 'Missing fields',
-      received: { to: !!to, subject: !!subject, html: !!html, resendKey: !!resendKey }
-    })
+    return res.status(400).json({ error: 'Missing required fields: to, subject, html, resendKey' })
   }
 
   try {
@@ -38,24 +28,24 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Hairnique <orders@hairniqueng.com>',
+        from: 'Hairnique <orders@contact.hairniqueng.com>',
         to: Array.isArray(to) ? to : [to],
-        subject: subject,
-        html: html
+        subject,
+        html
       })
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      console.error('Resend API error:', data)
+      console.error('Resend error:', data)
       return res.status(response.status).json({ error: data })
     }
 
     return res.status(200).json({ success: true, id: data.id })
 
   } catch (err) {
-    console.error('Handler error:', err.message)
+    console.error('Send email handler error:', err)
     return res.status(500).json({ error: err.message })
   }
 }
