@@ -810,20 +810,62 @@ footer {
 }
 .footer-inner { max-width: 1200px; margin: 0 auto; }
 .footer-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 1.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 3rem;
   padding-bottom: 1.75rem;
   border-bottom: 1px solid rgba(255,255,255,.09);
 }
+.footer-brand {}
 .footer-logo img { height: 28px; object-fit: contain; }
 .footer-tagline { font-size: .72rem; color: rgba(255,255,255,.35); margin-top: .32rem; text-transform: uppercase; letter-spacing: .08em; }
-.footer-links { display: flex; gap: 1.4rem; flex-wrap: wrap; align-items: center; }
-.footer-links a { font-size: .85rem; color: rgba(255,255,255,.48); transition: color .18s; }
-.footer-links a:hover { color: var(--seafoam); }
-.footer-socials { display: flex; gap: .55rem; align-items: center; }
+
+/* Nav cols — Explore + Legal side by side */
+.footer-nav-cols {
+  display: flex;
+  justify-content: center;
+  gap: 3.5rem;
+  flex-wrap: wrap;
+}
+.footer-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 2.5rem;
+  row-gap: 0.62rem;
+  justify-items: center;
+  text-align: center;
+}
+.footer-col-label {
+  grid-column: 1 / -1;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.28);
+  margin-bottom: .2rem;
+}
+.footer-nav-cols a,
+.footer-col a {
+  font-size: .85rem;
+  color: rgba(255,255,255,.48);
+  transition: color .18s;
+  text-decoration: none;
+}
+.footer-nav-cols a:hover,
+.footer-col a:hover { color: var(--seafoam); }
+
+/* Socials — vertical stack on the right */
+.footer-socials {
+  display: flex;
+  gap: .55rem;
+  align-items: center;
+}
+.footer-socials--vertical {
+  flex-direction: column;
+  align-items: center;
+  gap: .45rem;
+}
 .footer-socials a {
   width: 34px; height: 34px;
   border-radius: 9px;
@@ -835,7 +877,21 @@ footer {
   transition: background .18s;
 }
 .footer-socials a:hover { background: var(--pink); }
+
+/* Mobile: stack brand → nav cols → socials */
+@media (max-width: 700px) {
+  .footer-top {
+    grid-template-columns: 1fr;
+    gap: 1.8rem;
+  }
+  .footer-socials--vertical {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+}
+
 .footer-bottom {
+
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
