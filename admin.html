@@ -1398,26 +1398,50 @@ function fillTemplate(html, vars) {
   return result
 }
 async function sendEmail(templateKey, toEmail, toName, variables) {
-  if (!toEmail || !toEmail.includes('@')) return false
+  console.log('sendEmail called:', templateKey, 'to', toEmail)
+
   const resendKey = await getResendKey()
-  if (!resendKey) { console.warn('No Resend key'); return false }
+  if (!resendKey) {
+    console.error('sendEmail: No Resend key configured')
+    return false
+  }
+
   const template = await getEmailTemplate(templateKey)
-  if (!template) { console.warn('Template not found:', templateKey); return false }
+  if (!template) {
+    console.error('sendEmail: Template not found:', templateKey)
+    return false
+  }
+
+  const subject = fillTemplate(template.subject, variables)
+  const html = fillTemplate(template.body_html, variables)
+
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    // Call Vercel serverless function — not Resend directly
+    const res = await fetch('https://hairniqueng.com/api/send-email', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Hairnique <orders@hairniqueng.com>',
-        to: [toEmail],
-        subject: fillTemplate(template.subject, variables),
-        html: fillTemplate(template.body_html, variables)
+        to: toEmail,
+        subject,
+        html,
+        resendKey  // passed to server — never exposed in HTML source
       })
     })
+
     const data = await res.json()
-    if (!res.ok) { console.error('Resend error:', data); return false }
-    console.log('Email sent:', templateKey, 'to', toEmail); return true
-  } catch(err) { console.error('Email send failed:', err); return false }
+
+    if (!res.ok) {
+      console.error('Email API error:', data)
+      return false
+    }
+
+    console.log('Email sent:', templateKey, 'to', toEmail, '| ID:', data.id)
+    return true
+
+  } catch (err) {
+    console.error('sendEmail error:', err)
+    return false
+  }
 }
 
 document.querySelectorAll('.modal-overlay').forEach(m=>{
