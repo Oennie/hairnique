@@ -321,34 +321,7 @@ async function loadProduct(id) {
     var twT    = document.getElementById('twTitle');  if (twT)   twT.setAttribute('content',   p.name + ' - Hairnique');
     var twD    = document.getElementById('twDesc');   if (twD)   twD.setAttribute('content',   p.description ? p.description.substring(0,120) : p.name);
     injectProductSchema(p, selectedVariant);
-    // Build image gallery — uses images array, falls back to image_url, then emoji
-    var pdImages = (p.images && p.images.length) ? p.images
-      : (p.image_url ? [p.image_url] : []);
-
-    var imgHtml;
-    if (!pdImages.length) {
-      imgHtml = '<div class="pd-emoji">' + (p.emoji || '\u2728') + '</div>';
-    } else {
-      imgHtml =
-        '<div style="aspect-ratio:1;overflow:hidden;border-radius:16px;background:var(--light);margin-bottom:.75rem">' +
-          '<img id="mainProductImg" src="' + esc(pdImages[0]) + '" alt="' + esc(p.name) + '"' +
-            ' style="width:100%;height:100%;object-fit:cover;transition:opacity .2s" loading="eager">' +
-        '</div>' +
-        (pdImages.length > 1
-          ? '<div style="display:flex;gap:.5rem;flex-wrap:wrap">' +
-              pdImages.map(function(url, i) {
-                return '<button type="button" onclick="switchProductImage(\'' + esc(url) + '\',this)"' +
-                  ' style="width:64px;height:64px;border-radius:9px;overflow:hidden;' +
-                  'border:2px solid ' + (i === 0 ? 'var(--purple)' : 'var(--border)') + ';' +
-                  'padding:0;cursor:pointer;flex-shrink:0;transition:border-color .2s"' +
-                  ' aria-label="View image ' + (i+1) + '">' +
-                  '<img src="' + esc(url) + '" alt="' + esc(p.name) + ' view ' + (i+1) + '"' +
-                    ' style="width:100%;height:100%;object-fit:cover" loading="lazy">' +
-                '</button>';
-              }).join('') +
-            '</div>'
-          : '');
-    }
+    // Image gallery will be rendered below after DOM insertion
 
     var variantHtml = '';
     if (activeV.length > 1) {
@@ -370,7 +343,7 @@ async function loadProduct(id) {
 
     detail.innerHTML =
       '<div class="product-detail-grid">' +
-        '<div class="pd-image" id="pdImageWrap">' + imgHtml + '</div>' +
+        '<div class="pd-image" id="productImageGallery"></div>' +
         '<div class="pd-info">' +
           (p.category ? '<div class="pd-category">' + esc(p.category) + '</div>' : '') +
           '<h1 class="pd-name">' + esc(p.name) + '</h1>' +
@@ -395,7 +368,8 @@ async function loadProduct(id) {
           '<div class="pd-info-strip" id="pdInfoStrip"></div>' +
         '</div>' +
       '</div>';
-
+    // Call the new render function after container is in DOM
+    renderProductImages(p);
     // Load delivery + returns info
     try {
       var scResult = await db.from('site_content').select('key,value').in('key', ['delivery_info','returns_policy']);
@@ -567,5 +541,90 @@ function switchProductImage(url, btn) {
     </button>
   </div>
 </div>
+<script>
+function renderProductImages(product) {
+  const container = document.getElementById('productImageGallery')
+  if (!container) {
+    console.error('productImageGallery container not found')
+    return
+  }
+
+  // Build images array — use images column, fall back to image_url, fall back to emoji
+  let images = []
+  if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+    images = product.images
+  } else if (product.image_url) {
+    images = [product.image_url]
+  }
+
+  console.log('Rendering images:', images)
+
+  if (!images.length) {
+    // No images — show emoji placeholder
+    container.innerHTML = `
+      <div style="aspect-ratio:1;background:linear-gradient(135deg,#F4EEF9,#e8dcf5);
+        border-radius:16px;display:flex;align-items:center;
+        justify-content:center;font-size:6rem;">
+        ${product.emoji || '🧴'}
+      </div>`
+    return
+  }
+
+  // Single image — no thumbnail strip
+  if (images.length === 1) {
+    container.innerHTML = `
+      <div style="aspect-ratio:1;overflow:hidden;border-radius:16px;background:#F4EEF9;">
+        <img id="mainProductImg"
+          src="${images[0]}"
+          alt="${product.name}"
+          style="width:100%;height:100%;object-fit:cover;"
+          loading="eager">
+      </div>`
+    return
+  }
+
+  // Multiple images — main image + thumbnail strip
+  container.innerHTML = `
+    <div style="aspect-ratio:1;overflow:hidden;border-radius:16px;
+      background:#F4EEF9;margin-bottom:.75rem;">
+      <img id="mainProductImg"
+        src="${images[0]}"
+        alt="${product.name}"
+        style="width:100%;height:100%;object-fit:cover;
+        transition:opacity .2s ease;"
+        loading="eager">
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+      ${images.map((url, i) => `
+        <button type="button"
+          onclick="switchProductImage('${url}', this)"
+          style="width:68px;height:68px;border-radius:10px;
+          overflow:hidden;padding:0;cursor:pointer;flex-shrink:0;
+          border:2.5px solid ${i === 0 ? 'var(--purple)' : 'var(--border)'};
+          background:none;transition:border-color .2s;"
+          aria-label="View image ${i + 1}">
+          <img src="${url}"
+            alt="${product.name} view ${i + 1}"
+            style="width:100%;height:100%;object-fit:cover;"
+            loading="lazy">
+        </button>`).join('')}
+    </div>`
+}
+
+function switchProductImage(url, btn) {
+  const main = document.getElementById('mainProductImg')
+  if (main) {
+    main.style.opacity = '0'
+    setTimeout(() => {
+      main.src = url
+      main.style.opacity = '1'
+    }, 150)
+  }
+  document.querySelectorAll('[onclick*="switchProductImage"]').forEach(b => {
+    b.style.borderColor = 'var(--border)'
+  })
+  if (btn) btn.style.borderColor = 'var(--purple)'
+}
+</script>
 </body>
 </html>

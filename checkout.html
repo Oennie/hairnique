@@ -1022,9 +1022,10 @@ async function saveOrder(orderNum, paystackRef, subtotal, total) {
 // ── EMAIL SYSTEM ─────────────────────────────────────────────────
 
 async function getResendKey() {
-  const { data } = await db.from('site_content')
+  const { data, error } = await db.from('site_content')
     .select('value').eq('key', 'resend_api_key').single()
-  return data && data.value ? data.value : null
+  console.log('Resend key fetch:', data?.value ? 'Key found (' + data.value.substring(0,8) + '...)' : 'NO KEY FOUND', error || '')
+  return data?.value || null
 }
 
 async function getEmailTemplate(key) {
@@ -1063,31 +1064,54 @@ function buildItemsHtml(items) {
 }
 
 async function sendEmail(templateKey, toEmail, toName, variables) {
-  if (!toEmail || !toEmail.includes('@')) return false
+  console.log('sendEmail called:', templateKey, 'to', toEmail)
+
   const resendKey = await getResendKey()
   if (!resendKey) {
-    console.warn('No Resend key configured — email not sent')
+    console.error('sendEmail: No Resend key — aborting')
     return false
   }
+  console.log('sendEmail: Key found, fetching template...')
+
   const template = await getEmailTemplate(templateKey)
   if (!template) {
-    console.warn('Email template not found:', templateKey)
+    console.error('sendEmail: Template not found:', templateKey)
     return false
   }
+  console.log('sendEmail: Template found, sending...')
+
   const subject = fillTemplate(template.subject, variables)
   const html = fillTemplate(template.body_html, variables)
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: 'Hairnique <orders@hairniqueng.com>', to: [toEmail], subject, html })
+      headers: {
+        'Authorization': 'Bearer ' + resendKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Hairnique <orders@hairniqueng.com>',
+        to: [toEmail],
+        subject,
+        html
+      })
     })
-    const data = await res.json()
-    if (!res.ok) { console.error('Resend error:', data); return false }
-    console.log('Email sent:', templateKey, 'to', toEmail)
+
+    const responseData = await res.json()
+    console.log('Resend response status:', res.status)
+    console.log('Resend response body:', responseData)
+
+    if (!res.ok) {
+      console.error('Resend error:', responseData)
+      return false
+    }
+
+    console.log('Email sent successfully:', templateKey, 'to', toEmail, '| ID:', responseData.id)
     return true
+
   } catch (err) {
-    console.error('Email send failed:', err)
+    console.error('sendEmail fetch error:', err)
     return false
   }
 }
