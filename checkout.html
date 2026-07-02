@@ -1348,6 +1348,14 @@ function initAddressAutocomplete() {
   const input = document.getElementById('buyerAddress')
   if (!input) return
 
+  // Fallback for manual entry if user doesn't click a Google suggestion
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      const addr = input.value.trim()
+      if (addr.length > 4) runZoneDetection(addr)
+    }, 200)
+  })
+
   const autocomplete = new google.maps.places.Autocomplete(input, {
     componentRestrictions: { country: 'ng' },
     fields: ['formatted_address', 'geometry', 'name'],
