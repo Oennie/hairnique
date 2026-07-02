@@ -379,6 +379,8 @@ tr:hover td{background:#faf5ff}
         <span class="sb-icon">🖊️</span>Site Content</div>
 <div class="sb-item" onclick="nav('legal',this)">
 <span class="sb-icon">&#x2696;&#xFE0F;</span>Legal Pages</div>
+      <div class="sb-item" onclick="nav('emailtemplates',this)">
+        <span class="sb-icon">✉️</span>Email Templates</div>
       <div class="sb-item" onclick="nav('delivery',this)">
         <span class="sb-icon">🚚</span>Delivery Zones</div>
       <div class="sb-section">System</div>
@@ -772,6 +774,16 @@ tr:hover td{background:#faf5ff}
         </div>
         <div id="legalDocsList"></div>
       </div>
+
+      <!-- EMAIL TEMPLATES -->
+      <div class="view" id="view-emailtemplates">
+        <div class="section-head">
+          <h2>Email Templates</h2>
+          <p style="color:var(--muted);font-size:.88rem;margin-top:.3rem">Edit the HTML for each automated email. Use {{variable}} placeholders exactly as shown.</p>
+        </div>
+        <div id="emailTemplatesList"></div>
+      </div>
+
 <div class="view" id="view-settings">
         <div class="section-head"><h2>Settings</h2></div>
         <div class="two-col">
@@ -870,12 +882,24 @@ tr:hover td{background:#faf5ff}
           <select id="pmCat"></select></div>
         <div class="form-group"><label>Emoji (optional)</label>
           <input type="text" id="pmEmoji" placeholder="🧴" maxlength="4"></div>
-        <div class="form-group full"><label>Product Photo</label>
-          <input type="file" id="pmImg" accept="image/*"
-            onchange="previewImg(this,'pmImgPreview')">
-          <img id="pmImgPreview" class="img-preview">
+        <div class="form-group full"><label>Product Photos</label>
+          <!-- Existing images grid -->
+          <div id="pmImagesGrid" style="display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:.75rem"></div>
+          <!-- Upload new images -->
+          <input type="file" id="pmImgsInput" accept="image/*" multiple
+            onchange="handleImageUploads(this)"
+            style="display:none">
+          <button type="button" class="btn btn-sec btn-sm"
+            onclick="document.getElementById('pmImgsInput').click()">
+            + Add Photos
+          </button>
+          <div class="form-hint">
+            Upload multiple photos. First photo is the main product image.
+          </div>
+          <!-- Hidden field stores final images array -->
+          <input type="hidden" id="pmImagesData" value="[]">
+          <!-- Legacy hidden field kept for compatibility -->
           <input type="hidden" id="pmImgUrl">
-          <div class="form-hint">Clear photo on white/light background works best</div>
         </div>
         <div class="form-group full"><label>Visibility</label>
           <select id="pmActive">
@@ -1227,12 +1251,31 @@ function changePw(){
 async function saveSettings(){
   const re=document.getElementById('settingResend').value.trim();
   if(re)localStorage.setItem('hq_resend',re);
+  // Also persist to Supabase so checkout can read it
+  if(re){
+    await db.from('site_content')
+      .update({value:re})
+      .eq('key','resend_api_key');
+  }
   toast('Settings saved','success');
 }
 async function initSettings(){
-  // Paystack key is now managed via Site Content section only
+  const{data}=await db.from('site_content')
+    .select('key,value')
+    .in('key',['paystack_public_key','resend_api_key']);
+  if(data){
+    data.forEach(row=>{
+      if(row.key==='paystack_public_key'){
+        const el=document.getElementById('settingPaystack');if(el)el.value=row.value;
+      }
+      if(row.key==='resend_api_key'){
+        const el=document.getElementById('settingResend');if(el)el.value=row.value;
+      }
+    });
+  }
+  // Fallback: also check localStorage
   const re=localStorage.getItem('hq_resend');
-  if(re){const el=document.getElementById('settingResend');if(el)el.value=re;}
+  if(re){const el=document.getElementById('settingResend');if(el&&!el.value)el.value=re;}
 }
 if(localStorage.getItem('hq_auth')){
   document.getElementById('loginWrap').style.display='none';
@@ -1259,7 +1302,7 @@ function nav(name,el){
     categories:'Categories',inventory:'Inventory',customers:'Customers',
     feedback:'Feedback',discounts:'Discount Codes',referrals:'Referral Partners',
     expenses:'Expenses',reports:'Reports & Export',blog:'Blog Posts',
-    sitecontent:'Site Content',delivery:'Delivery Zones',settings:'Settings',legal:'Legal Pages'};
+    sitecontent:'Site Content',delivery:'Delivery Zones',settings:'Settings',legal:'Legal Pages',emailtemplates:'Email Templates'};
   document.getElementById('topbarTitle').textContent=T[name]||name;
   document.getElementById('sidebar').classList.remove('open');
   refreshView();
@@ -1269,7 +1312,7 @@ function refreshView(){
     categories:loadCategories,inventory:loadInventory,customers:loadCustomers,
     feedback:loadFeedback,discounts:loadDiscounts,referrals:loadReferrals,
     expenses:loadExpenses,reports:loadReports,blog:loadBlog,
-    sitecontent:loadSiteContent,delivery:loadZones,settings:initSettings,legal:loadLegalDocs};
+    sitecontent:loadSiteContent,delivery:loadZones,settings:initSettings,legal:loadLegalDocs,emailtemplates:loadEmailTemplates};
   if(M[currentView])M[currentView]();
 }
 
@@ -1284,7 +1327,101 @@ function toast(msg,type=''){
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ── MULTI-IMAGE HELPERS ───────────────────────────────────────────
+function renderProductImages(images) {
+  const grid = document.getElementById('pmImagesGrid')
+  const data = document.getElementById('pmImagesData')
+  if (!grid || !data) return
+  const imgs = images || []
+  data.value = JSON.stringify(imgs)
+  grid.innerHTML = imgs.map((url, i) =>
+    '<div style="position:relative;flex-shrink:0" id="imgThumb_' + i + '">' +
+      '<img src="' + esc(url) + '" alt="Product image ' + (i+1) + '"' +
+        ' style="width:80px;height:80px;border-radius:9px;object-fit:cover;border:1.5px solid var(--border)">' +
+      (i === 0 ? '<span style="position:absolute;bottom:3px;left:3px;background:var(--purple);color:#fff;' +
+        'font-size:.6rem;font-weight:700;padding:.1rem .3rem;border-radius:4px">Main</span>' : '') +
+      '<button type="button" onclick="removeProductImage(' + i + ')"' +
+        ' style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;' +
+        'background:#ef4444;color:#fff;border:none;font-size:.7rem;cursor:pointer;' +
+        'display:flex;align-items:center;justify-content:center;line-height:1">✕</button>' +
+    '</div>'
+  ).join('')
+}
+
+function removeProductImage(index) {
+  const data = document.getElementById('pmImagesData')
+  const imgs = JSON.parse(data.value || '[]')
+  imgs.splice(index, 1)
+  renderProductImages(imgs)
+}
+
+async function handleImageUploads(input) {
+  const files = Array.from(input.files)
+  if (!files.length) return
+  const btn = document.querySelector('button[onclick*="pmImgsInput"]')
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading...' }
+  const data = document.getElementById('pmImagesData')
+  const existing = JSON.parse(data.value || '[]')
+  for (const file of files) {
+    try {
+      const ext = file.name.split('.').pop().toLowerCase()
+      const path = 'products/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext
+      const { error } = await db.storage.from('product-images').upload(path, file, { upsert: true })
+      if (error) { toast('Upload failed: ' + error.message, 'error'); continue }
+      const { data: urlData } = db.storage.from('product-images').getPublicUrl(path)
+      existing.push(urlData.publicUrl)
+    } catch (e) {
+      toast('Upload error: ' + e.message, 'error')
+    }
+  }
+  renderProductImages(existing)
+  if (btn) { btn.disabled = false; btn.textContent = '+ Add Photos' }
+  input.value = ''
+}
+
+
+
+// ── EMAIL SYSTEM ──────────────────────────────────────────────────
+async function getResendKey() {
+  const { data } = await db.from('site_content').select('value').eq('key', 'resend_api_key').single()
+  return data && data.value ? data.value : null
+}
+async function getEmailTemplate(key) {
+  const { data } = await db.from('email_templates').select('subject, body_html')
+    .eq('template_key', key).eq('is_active', true).single()
+  return data || null
+}
+function fillTemplate(html, vars) {
+  var result = html
+  for (var k in vars) { var re = new RegExp('\\{\\{' + k + '\\}\\}', 'g'); result = result.replace(re, vars[k] || '') }
+  return result
+}
+async function sendEmail(templateKey, toEmail, toName, variables) {
+  if (!toEmail || !toEmail.includes('@')) return false
+  const resendKey = await getResendKey()
+  if (!resendKey) { console.warn('No Resend key'); return false }
+  const template = await getEmailTemplate(templateKey)
+  if (!template) { console.warn('Template not found:', templateKey); return false }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + resendKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Hairnique <orders@hairniqueng.com>',
+        to: [toEmail],
+        subject: fillTemplate(template.subject, variables),
+        html: fillTemplate(template.body_html, variables)
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) { console.error('Resend error:', data); return false }
+    console.log('Email sent:', templateKey, 'to', toEmail); return true
+  } catch(err) { console.error('Email send failed:', err); return false }
+}
+
 document.querySelectorAll('.modal-overlay').forEach(m=>{
+
   m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
 });
 function previewImg(input,pid){
@@ -1411,6 +1548,37 @@ async function updateStatus(id,status,el,phone,name,orderNum,email){
   el.style.cssText='border:none;background:transparent;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;border-radius:100px;padding:.16rem .6rem';
   await db.from('orders').update({status}).eq('id',id);
   toast('Order: '+status,'success');
+
+  // Send status email to customer
+  if (email && email.includes('@')) {
+    if (status === 'confirmed') {
+      sendEmail('order_confirmed_status', email, name, {
+        customer_name: name,
+        order_number: orderNum,
+      }).catch(()=>{});
+    }
+    if (status === 'shipped') {
+      db.from('orders').select('customer_address, delivery_zone').eq('id', id).single()
+        .then(({ data: ord }) => {
+          sendEmail('order_shipped', email, name, {
+            customer_name: name,
+            customer_phone: phone,
+            order_number: orderNum,
+            customer_address: ord ? ord.customer_address || '' : '',
+            delivery_zone: ord ? ord.delivery_zone || '' : '',
+            estimated_delivery: 'Within 1–3 business days',
+          }).catch(()=>{});
+        });
+    }
+    if (status === 'delivered') {
+      sendEmail('order_delivered', email, name, {
+        customer_name: name,
+        order_number: orderNum,
+        feedback_url: 'https://hairniqueng.com/feedback?order=' + orderNum,
+      }).catch(()=>{});
+    }
+  }
+
   const msgs={
     confirmed:`Hi ${name}! 🌿 Your Hairnique order ${orderNum} is confirmed. We're getting it ready!`,
     processing:`Hi ${name}! 📦 Your Hairnique order ${orderNum} is being packed for dispatch.`,
@@ -1642,9 +1810,8 @@ function addVariantRow(v=null){
 async function openProductModal(id=null){
   variantCounter=0;
   document.getElementById('variantsContainer').innerHTML='';
-  document.getElementById('pmImgPreview').className='img-preview';
+  document.getElementById('pmImagesData').value='[]';
   document.getElementById('pmImgUrl').value='';
-  document.getElementById('pmImg').value='';
   // Reset base price fields
   ['bpRetail','bpCost','bpStock'].forEach(f=>document.getElementById(f).value='');
   const{data:cats}=await db.from('categories').select('*').order('sort_order');
@@ -1660,8 +1827,7 @@ async function openProductModal(id=null){
     document.getElementById('pmCat').value=p.category;
     document.getElementById('pmEmoji').value=p.emoji||'';
     document.getElementById('pmActive').value=String(p.is_active);
-    document.getElementById('pmImgUrl').value=p.image_url||'';
-    if(p.image_url){const pv=document.getElementById('pmImgPreview');pv.src=p.image_url;pv.className='img-preview show';}
+    renderProductImages(p.images && p.images.length ? p.images : (p.image_url ? [p.image_url] : []));
     const sortedVars=(p.variants||[]).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
     const isDefaultOnly=sortedVars.length===1&&sortedVars[0].label==='Default';
     if(isDefaultOnly){
@@ -1678,6 +1844,7 @@ async function openProductModal(id=null){
     document.getElementById('productModalTitle').textContent='Add Product';
     ['pmId','pmName','pmDesc','pmEmoji'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('pmActive').value='true';
+    renderProductImages([]);
   }
   openModal('productModal');
 }
@@ -1685,19 +1852,14 @@ async function saveProduct(){
   const id=document.getElementById('pmId').value;
   const name=document.getElementById('pmName').value.trim();
   if(!name){toast('Product name required','error');return;}
-  let imgUrl=document.getElementById('pmImgUrl').value;
-  const imgFile=document.getElementById('pmImg').files[0];
-  if(imgFile){
-    const ext=imgFile.name.split('.').pop();
-    const path=`products/${Date.now()}.${ext}`;
-    const{error:ue}=await db.storage.from('product-images').upload(path,imgFile,{upsert:true});
-    if(ue){toast('Image upload failed','error');return;}
-    imgUrl=db.storage.from('product-images').getPublicUrl(path).data.publicUrl;
-  }
+  const images = JSON.parse(document.getElementById('pmImagesData').value || '[]');
+  const primaryImage = images[0] || null;
+  document.getElementById('pmImgUrl').value = primaryImage || '';
   const pData={name,description:document.getElementById('pmDesc').value.trim()||null,
     category:document.getElementById('pmCat').value,
     emoji:document.getElementById('pmEmoji').value.trim()||null,
-    image_url:imgUrl||null,
+    image_url:primaryImage,
+    images:images,
     is_active:document.getElementById('pmActive').value==='true'};
   let pid=id;
   if(id){
@@ -2174,7 +2336,254 @@ async function exportProductSales() {
   toast('CSV downloaded', 'success');
 }
 
+
+/* EMAIL TEMPLATES */
+const TEMPLATE_VARS = {
+  order_confirmation: ['{{customer_name}}','{{order_number}}','{{items_html}}','{{delivery_fee}}','{{discount_row}}','{{order_total}}'],
+  cart_abandonment: ['{{customer_name}}','{{items_html}}','{{checkout_url}}'],
+  order_shipped: ['{{customer_name}}','{{order_number}}','{{customer_address}}','{{delivery_zone}}','{{estimated_delivery}}'],
+  order_delivered: ['{{customer_name}}','{{order_number}}','{{feedback_url}}'],
+  order_confirmed_status: ['{{customer_name}}','{{order_number}}']
+};
+const TEMPLATE_LABELS = {
+  order_confirmation: 'Order Confirmation',
+  cart_abandonment: 'Cart Abandonment',
+  order_shipped: 'Order Shipped',
+  order_delivered: 'Order Delivered',
+  order_confirmed_status: 'Order Confirmed (Status Update)'
+};
+
+async function loadEmailTemplates() {
+  const container = document.getElementById('emailTemplatesList');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:2rem;color:var(--muted)">Loading templates...</div>';
+  const { data, error } = await db.from('email_templates').select('*').order('template_key');
+  if (error || !data) {
+    container.innerHTML = `<div style="padding:2rem;color:var(--red)">Error: ${error?.message || 'No data'}</div>`;
+    return;
+  }
+  if (!data.length) {
+    container.innerHTML = '<div style="padding:2rem;color:var(--muted)">No email templates found in Supabase email_templates table.</div>';
+    return;
+  }
+  container.innerHTML = data.map(t => `
+    <div class="tcard" style="margin-bottom:1.5rem;padding:1.5rem" id="etcard_${t.id}">
+      <!-- Header row -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem">
+        <div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--purple)">
+            ${TEMPLATE_LABELS[t.template_key] || t.template_key}
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.25rem">
+            Key: <code style="background:var(--bg);padding:.1rem .35rem;border-radius:4px">${t.template_key}</code>
+          </div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+          <!-- Mode toggle -->
+          <div style="display:flex;background:var(--bg);border-radius:8px;padding:3px;border:1.5px solid var(--border)">
+            <button id="et_mode_simple_${t.id}" onclick="etSetMode('${t.id}','simple')"
+              style="padding:.28rem .75rem;border:none;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;
+              background:var(--purple);color:#fff;font-family:inherit;transition:all .2s">Simple</button>
+            <button id="et_mode_html_${t.id}" onclick="etSetMode('${t.id}','html')"
+              style="padding:.28rem .75rem;border:none;border-radius:6px;font-size:.75rem;font-weight:700;cursor:pointer;
+              background:transparent;color:var(--muted);font-family:inherit;transition:all .2s">HTML</button>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="previewEmailTemplate('${t.id}')">&#x1F441; Preview</button>
+          <button class="btn btn-pink btn-sm" onclick="saveEmailTemplate('${t.id}')">&#x1F4BE; Save</button>
+        </div>
+      </div>
+
+      <!-- Subject -->
+      <div style="margin-bottom:.75rem">
+        <label style="font-size:.73rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.3rem">Subject Line</label>
+        <input id="et_subject_${t.id}" value="${esc(t.subject)}"
+          style="width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:.88rem;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+
+      <!-- Simple mode editor -->
+      <div id="et_simple_wrap_${t.id}">
+        <label style="font-size:.73rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.3rem">Email Body (plain text)</label>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem;line-height:1.55">
+          Write your email in plain text. Use blank lines to separate paragraphs.
+          Use <code style="background:var(--bg);padding:.1rem .25rem;border-radius:4px">{{variables}}</code> as-is — they'll be filled in automatically.
+          When you save, this gets wrapped in the Hairnique email design automatically.
+        </div>
+        <textarea id="et_simple_${t.id}"
+          style="width:100%;padding:.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.88rem;line-height:1.7;resize:vertical;min-height:200px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
+          placeholder="Hi {{customer_name}},&#10;&#10;Your order {{order_number}} has been confirmed. We're getting it ready!&#10;&#10;If you have any questions, reach us on WhatsApp: +234 808 008 1215&#10;&#10;— The Hairnique Team"
+        >${etHtmlToSimple(t.body_html)}</textarea>
+      </div>
+
+      <!-- HTML mode editor (hidden by default) -->
+      <div id="et_html_wrap_${t.id}" style="display:none">
+        <label style="font-size:.73rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.3rem">Raw Email HTML</label>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:.5rem">
+          Full HTML mode — edit the complete email template. Changes save directly as stored.
+        </div>
+        <textarea id="et_html_${t.id}"
+          style="width:100%;padding:.9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.6;resize:vertical;min-height:280px;outline:none;box-sizing:border-box"
+          onfocus="this.style.borderColor='var(--purple)'" onblur="this.style.borderColor='var(--border)'"
+          >${t.body_html}</textarea>
+      </div>
+
+      <!-- Variables reference -->
+      <div style="margin-top:.65rem;padding:.6rem .9rem;background:var(--bg);border-radius:8px;font-size:.75rem;color:var(--muted);line-height:1.8">
+        <strong style="color:var(--purple)">Available variables:</strong>
+        ${(TEMPLATE_VARS[t.template_key] || []).map(v =>
+          `<code style="background:#fff;padding:.1rem .3rem;border-radius:4px;margin:0 .2rem;font-size:.73rem">${v}</code>`
+        ).join('')}
+      </div>
+    </div>`).join('');
+}
+
+// Convert stored HTML back to readable plain text for Simple mode
+function etHtmlToSimple(html) {
+  if (!html) return '';
+  // If it looks like the simple-wrapped shell, extract the body content
+  const match = html.match(/<!--BODY_START-->([\s\S]*?)<!--BODY_END-->/);
+  if (match) return match[1].trim();
+  // Otherwise strip common HTML tags to give something editable
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&#039;/g, "'")
+    .trim();
+}
+
+// Wrap plain text body in the Hairnique email shell
+function etBuildHtmlShell(plainText) {
+  // Split on blank lines → paragraphs; single newlines → <br>
+  const paragraphs = plainText.split(/\n\s*\n/).filter(p => p.trim()).map(p =>
+    '<p style="margin:0 0 1rem;font-size:15px;color:#1a0a2e;line-height:1.7">' +
+    p.trim().replace(/\n/g, '<br>') +
+    '</p>'
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4eef9;font-family:'Helvetica Neue',Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4eef9;padding:32px 0">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
+  <!-- Header -->
+  <tr><td style="background:#28103F;border-radius:12px 12px 0 0;padding:28px 36px;text-align:center">
+    <span style="font-family:Georgia,serif;font-size:22px;color:#ffffff;font-weight:700;letter-spacing:.03em">Hairnique</span>
+    <div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:4px;letter-spacing:.12em;text-transform:uppercase">Natural Hair Care</div>
+  </td></tr>
+  <!-- Body -->
+  <tr><td style="background:#ffffff;padding:32px 36px;border:1px solid #ebe3f5;border-top:none">
+    <!--BODY_START-->
+${paragraphs}
+    <!--BODY_END-->
+    {{items_html}}
+    {{discount_row}}
+    <!-- Summary table (used by order emails) -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid #ebe3f5;margin-top:1rem;padding-top:1rem">
+      <tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0">Delivery</td><td align="right" style="font-size:13px">{{delivery_fee}}</td></tr>
+      {{discount_row}}
+      <tr><td style="font-size:15px;font-weight:700;color:#1a0a2e;padding:8px 0 0">Total Paid</td><td align="right" style="font-size:15px;font-weight:700;color:#F64484">{{order_total}}</td></tr>
+    </table>
+  </td></tr>
+  <!-- Footer -->
+  <tr><td style="background:#f4eef9;border-radius:0 0 12px 12px;padding:18px 36px;text-align:center;font-size:12px;color:#7a6a8a;border:1px solid #ebe3f5;border-top:none">
+    Questions? <a href="https://wa.me/2348080081215" style="color:#F64484;text-decoration:none">WhatsApp us</a> &nbsp;|&nbsp;
+    <a href="https://hairniqueng.com" style="color:#F64484;text-decoration:none">hairniqueng.com</a>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`
+}
+
+// Toggle between Simple and HTML mode
+function etSetMode(id, mode) {
+  const simpleWrap = document.getElementById('et_simple_wrap_' + id);
+  const htmlWrap   = document.getElementById('et_html_wrap_'   + id);
+  const btnSimple  = document.getElementById('et_mode_simple_' + id);
+  const btnHtml    = document.getElementById('et_mode_html_'   + id);
+  const on  = 'background:var(--purple);color:#fff';
+  const off = 'background:transparent;color:var(--muted)';
+  if (mode === 'simple') {
+    simpleWrap.style.display = 'block'; htmlWrap.style.display = 'none';
+    btnSimple.style.cssText += ';' + on; btnHtml.style.cssText += ';' + off;
+  } else {
+    simpleWrap.style.display = 'none'; htmlWrap.style.display = 'block';
+    btnHtml.style.cssText += ';' + on; btnSimple.style.cssText += ';' + off;
+  }
+  // Store mode on the card
+  document.getElementById('etcard_' + id).dataset.mode = mode;
+}
+
+async function saveEmailTemplate(id) {
+  const card = document.getElementById('etcard_' + id);
+  const mode = card ? card.dataset.mode || 'simple' : 'simple';
+  const subject = document.getElementById('et_subject_' + id)?.value.trim();
+  if (!subject) { toast('Subject is required', 'error'); return; }
+
+  let bodyHtml;
+  if (mode === 'html') {
+    bodyHtml = document.getElementById('et_html_' + id)?.value.trim();
+    if (!bodyHtml) { toast('HTML body is required', 'error'); return; }
+  } else {
+    const plainText = document.getElementById('et_simple_' + id)?.value.trim();
+    if (!plainText) { toast('Email body is required', 'error'); return; }
+    bodyHtml = etBuildHtmlShell(plainText);
+    // Also update the HTML textarea so it reflects the saved state
+    const ta = document.getElementById('et_html_' + id);
+    if (ta) ta.value = bodyHtml;
+  }
+
+  const { error } = await db.from('email_templates')
+    .update({ subject, body_html: bodyHtml, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) { toast('Save failed: ' + error.message, 'error'); return; }
+  toast('Template saved \u2713', 'success');
+}
+
+function previewEmailTemplate(id) {
+  const card = document.getElementById('etcard_' + id);
+  const mode = card ? card.dataset.mode || 'simple' : 'simple';
+  let html;
+  if (mode === 'html') {
+    html = document.getElementById('et_html_' + id)?.value || '';
+  } else {
+    const plain = document.getElementById('et_simple_' + id)?.value || '';
+    html = etBuildHtmlShell(plain);
+  }
+  const SAMPLE_ITEMS =
+    '<table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #ebe3f5;margin-bottom:10px;padding-bottom:10px;">' +
+      '<tr><td style="font-size:14px;color:#1a0a2e;font-weight:600;">Rosemary Oil &mdash; 100ml</td>' +
+      '<td align="right" style="font-size:14px;color:#28103F;font-weight:700;">&#8358;5,000</td></tr>' +
+      '<tr><td style="font-size:12px;color:#7a6a8a;">Qty: 1 &times; &#8358;5,000</td></tr></table>' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:1px solid #ebe3f5;margin-bottom:10px;padding-bottom:10px;">' +
+      '<tr><td style="font-size:14px;color:#1a0a2e;font-weight:600;">Wide Tooth Comb</td>' +
+      '<td align="right" style="font-size:14px;color:#28103F;font-weight:700;">&#8358;3,600</td></tr>' +
+      '<tr><td style="font-size:12px;color:#7a6a8a;">Qty: 2 &times; &#8358;1,800</td></tr></table>';
+  const preview = html
+    .replaceAll('{{customer_name}}', 'Amara')
+    .replaceAll('{{order_number}}', 'HQ-XK9M4')
+    .replaceAll('{{items_html}}', SAMPLE_ITEMS)
+    .replaceAll('{{delivery_fee}}', '&#8358;2,000')
+    .replaceAll('{{discount_row}}', '')
+    .replaceAll('{{order_total}}', '&#8358;10,600')
+    .replaceAll('{{customer_address}}', '14B Admiralty Way, Lekki Phase 1, Lagos')
+    .replaceAll('{{delivery_zone}}', 'Lekki / VI / Ikoyi')
+    .replaceAll('{{customer_phone}}', '+234 808 123 4567')
+    .replaceAll('{{estimated_delivery}}', 'Within 2\u20137 business days')
+    .replaceAll('{{feedback_url}}', '#')
+    .replaceAll('{{checkout_url}}', '#');
+  const win = window.open('', '_blank');
+  if (win) { win.document.write(preview); win.document.close(); }
+}
+
+
 /* LEGAL PAGES */
+
 async function loadLegalDocs() {
   const container = document.getElementById('legalDocsList');
   if (!container) {
