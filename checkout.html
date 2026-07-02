@@ -1068,50 +1068,44 @@ async function sendEmail(templateKey, toEmail, toName, variables) {
 
   const resendKey = await getResendKey()
   if (!resendKey) {
-    console.error('sendEmail: No Resend key — aborting')
+    console.error('sendEmail: No Resend key configured')
     return false
   }
-  console.log('sendEmail: Key found, fetching template...')
 
   const template = await getEmailTemplate(templateKey)
   if (!template) {
     console.error('sendEmail: Template not found:', templateKey)
     return false
   }
-  console.log('sendEmail: Template found, sending...')
 
   const subject = fillTemplate(template.subject, variables)
   const html = fillTemplate(template.body_html, variables)
 
   try {
-    const res = await fetch('https://api.resend.com/emails', {
+    // Call Vercel serverless function — not Resend directly
+    const res = await fetch('https://hairniqueng.com/api/send-email', {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + resendKey,
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Hairnique <orders@hairniqueng.com>',
-        to: [toEmail],
+        to: toEmail,
         subject,
-        html
+        html,
+        resendKey  // passed to server — never exposed in HTML source
       })
     })
 
-    const responseData = await res.json()
-    console.log('Resend response status:', res.status)
-    console.log('Resend response body:', responseData)
+    const data = await res.json()
 
     if (!res.ok) {
-      console.error('Resend error:', responseData)
+      console.error('Email API error:', data)
       return false
     }
 
-    console.log('Email sent successfully:', templateKey, 'to', toEmail, '| ID:', responseData.id)
+    console.log('Email sent:', templateKey, 'to', toEmail, '| ID:', data.id)
     return true
 
   } catch (err) {
-    console.error('sendEmail fetch error:', err)
+    console.error('sendEmail error:', err)
     return false
   }
 }
@@ -1293,17 +1287,26 @@ function detectZoneByKeyword(address) {
 }
 
 function detectZoneByPolygon(lat, lng) {
+  // Guard against undefined/null coordinates
+  if (lat === undefined || lng === undefined || lat === null || lng === null) {
+    console.warn('detectZoneByPolygon: invalid coordinates', lat, lng)
+    return null
+  }
+  if (isNaN(parseFloat(lat)) || isNaN(parseFloat(lng))) {
+    console.warn('detectZoneByPolygon: non-numeric coordinates', lat, lng)
+    return null
+  }
   if (!_zonePolygons.length) return null
   if (typeof turf === 'undefined') return null
-  const pt = turf.point([lng, lat])
+
+  const pt = turf.point([parseFloat(lng), parseFloat(lat)])
   for (const z of _zonePolygons) {
     try {
       if (turf.booleanPointInPolygon(pt, { type: 'Feature', geometry: z.polygon, properties: {} })) {
-        console.log('Polygon hit:', z.name)
         return z.name
       }
     } catch (e) {
-      console.warn('Polygon error for', z.name)
+      console.warn('Polygon check failed for', z.name, e.message)
     }
   }
   return null
@@ -1487,7 +1490,7 @@ async function loadGoogleMaps() {
 
     var script = document.createElement('script');
     script.src = 'https://maps.googleapis.com/maps/api/js?key=' +
-      encodeURIComponent(key) + '&libraries=places&callback=initAddressAutocomplete';
+      encodeURIComponent(key) + '&libraries=places&loading=async&callback=initAddressAutocomplete';
     script.async = true;
     script.onerror = function() {
       console.error('Failed to load Google Maps script');
