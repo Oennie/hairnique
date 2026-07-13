@@ -118,15 +118,18 @@ let _toastTimer = null;
 function showToast(msg, actions = null, duration = 3500) {
   const t = document.getElementById('toast');
   if (!t) return;
-  let html = esc(msg);
-  if (actions) {
+  let html = `<div class="toast-msg">${esc(msg)}</div>`;
+  if (actions && actions.length > 0) {
+    html += `<div class="toast-actions">`;
     actions.forEach(a => {
+      let oc = `document.getElementById('toast').classList.remove('show');`;
       if (a.onclick) {
-        html += ` <a href="#" class="toast-action" onclick="${esc(a.onclick)};return false">${esc(a.label)}</a>`;
+        html += `<a href="#" class="toast-action" onclick="${oc} ${esc(a.onclick)}; return false">${esc(a.label)}</a>`;
       } else {
-        html += ` <a href="${esc(a.href)}" class="toast-action">${esc(a.label)}</a>`;
+        html += `<a href="${esc(a.href)}" class="toast-action" onclick="${oc}">${esc(a.label)}</a>`;
       }
     });
+    html += `</div>`;
   }
   t.innerHTML = html;
   t.classList.add('show');
@@ -338,3 +341,4 @@ function applyPromoCode() {
   localStorage.setItem('hairnique_promo', code.toUpperCase());
   if (msg) { msg.textContent = 'Code saved — apply on checkout'; msg.className = 'code-msg ok'; }
 }
+

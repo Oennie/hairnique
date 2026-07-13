@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 
@@ -93,7 +93,7 @@
 .ci-price { font-size: .88rem; font-weight: 700; color: var(--pink); margin-top: .18rem; }
 .ci-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
 .ci-qty-btn {
-  width: 26px; height: 26px;
+  width: 36px; height: 36px;
   border-radius: 7px;
   border: 1.5px solid var(--border);
   background: var(--white);
@@ -103,6 +103,7 @@
   justify-content: center;
   cursor: pointer;
   transition: background .18s, border-color .18s;
+  touch-action: manipulation;
 }
 .ci-qty-btn:hover { background: var(--purple); color: #fff; border-color: var(--purple); }
 .ci-qty-num { min-width: 22px; text-align: center; font-size: .88rem; font-weight: 700; }
@@ -259,9 +260,16 @@
   background: var(--offwhite);
 }
 
+@media (max-width: 768px) {
+  .ck-title { font-size: 1.6rem; }
+}
+
 @media (max-width: 480px) {
   .ck-title { font-size: 1.5rem; }
-  .ci-img { width: 42px; height: 42px; }
+  .checkout-page { padding: calc(64px + 1rem) 4% 3rem; }
+  /* Keep item thumbnails a usable size */
+  .ci-img { width: 48px; height: 48px; }
+  /* Coupon row stacks on very narrow screens */
 }
 .skip-link{position:absolute;top:-40px;left:0;background:#28103F;color:#fff;padding:.5rem 1.25rem;text-decoration:none;font-weight:700;font-size:.85rem;z-index:9999;border-radius:0 0 8px 0;transition:top .15s}.skip-link:focus{top:0}
 
@@ -281,7 +289,10 @@
   position: absolute; top: calc(100% + .35rem); left: 0; right: 0;
   background: #fff; border: 1.5px solid var(--border); border-radius: 12px;
   box-shadow: 0 12px 32px rgba(40,16,63,.12); z-index: 100;
-  max-height: 320px; overflow-y: auto; padding: .4rem;
+  max-height: 280px; overflow-y: auto; padding: .4rem;
+}
+@media (max-width: 480px) {
+  .zone-picker-list { max-height: 200px; }
 }
 .zone-option {
   padding: .7rem .9rem; border-radius: 8px; cursor: pointer;
@@ -991,22 +1002,98 @@ async function saveOrder(orderNum, paystackRef, subtotal, total) {
     } catch(e) {}
   }
 
-  // 5. Confirmation email via Resend (template-based)
+  // 5. Confirmation email to customer
   try {
     var itemsHtml = buildItemsHtml(items);
     var discountRowHtml = discountAmount > 0
-      ? '<tr><td style="font-size:13px;color:#10b981;padding:4px 0;">Discount</td><td align="right" style="font-size:13px;color:#10b981;">-₦' + discountAmount.toLocaleString('en-NG') + '</td></tr>'
+      ? '<tr><td style="font-size:13px;color:#10b981;padding:4px 0;">Discount</td><td align="right" style="font-size:13px;color:#10b981;">-' + String.fromCharCode(8358) + discountAmount.toLocaleString('en-NG') + '</td></tr>'
       : '';
     await sendEmail('order_confirmation', buyerEmail, buyerName, {
       customer_name: buyerName,
       order_number: orderNum,
       items_html: itemsHtml,
-      delivery_fee: deliveryFee === 0 ? 'Free' : '₦' + deliveryFee.toLocaleString('en-NG'),
+      delivery_fee: deliveryFee === 0 ? 'Free' : String.fromCharCode(8358) + deliveryFee.toLocaleString('en-NG'),
       discount_row: discountRowHtml,
-      order_total: '₦' + total.toLocaleString('en-NG'),
+      order_total: String.fromCharCode(8358) + total.toLocaleString('en-NG'),
     });
-  } catch(e) { console.log('Confirmation email failed:', e); }
+  } catch(e) { console.log('Customer confirmation email failed:', e); }
 
+  // 5b. Owner notification email on every order
+  try {
+    var ownerEmails = ['hairnique.ng@gmail.com', 'eogunmona@gmail.com'];
+    var nairaSign = String.fromCharCode(8358);
+
+    var ownerItemsRows = items.map(function(i) {
+      return '<tr>' +
+        '<td style="padding:8px 0;border-bottom:1px solid #f0ebf8;font-size:14px;color:#1a0a2e;">' +
+          (i.qty > 1 ? i.qty + '\u00d7 ' : '') + i.product_name +
+          (i.variant_label && i.variant_label !== 'Default'
+            ? ' <span style="color:#7a6a8a;font-size:12px;">(' + i.variant_label + ')</span>'
+            : '') +
+        '</td>' +
+        '<td style="padding:8px 0;border-bottom:1px solid #f0ebf8;font-size:14px;color:#28103F;font-weight:700;text-align:right;">' +
+          nairaSign + (i.retail_price * i.qty).toLocaleString('en-NG') +
+        '</td></tr>';
+    }).join('');
+
+    var ownerHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+      '<body style="margin:0;padding:0;background:#f4eef9;font-family:system-ui,sans-serif;">' +
+      '<div style="max-width:520px;margin:0 auto;padding:24px 12px;">' +
+
+      '<div style="background:#28103F;border-radius:16px 16px 0 0;padding:20px 28px;">' +
+        '<div style="color:#0AF3BC;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;">New Order Received</div>' +
+        '<div style="color:#fff;font-size:24px;font-weight:bold;">' + orderNum + '</div>' +
+        '<div style="color:rgba(255,255,255,.45);font-size:12px;margin-top:4px;">' +
+          new Date().toLocaleString('en-NG', {timeZone:'Africa/Lagos',dateStyle:'medium',timeStyle:'short'}) +
+        '</div>' +
+      '</div>' +
+
+      '<div style="background:#fff;padding:20px 28px;border-left:1px solid #ede8f5;border-right:1px solid #ede8f5;">' +
+        '<div style="font-size:10px;font-weight:700;color:#7a6a8a;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;">Customer Details</div>' +
+        '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0;width:80px;">Name</td><td style="font-size:13px;color:#1a0a2e;font-weight:700;padding:4px 0;">' + (buyerName || '&mdash;') + '</td></tr>' +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0;">Phone</td><td style="font-size:13px;color:#1a0a2e;font-weight:700;padding:4px 0;">' + (buyerPhone || '&mdash;') + '</td></tr>' +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0;">Email</td><td style="font-size:13px;color:#1a0a2e;padding:4px 0;">' + (buyerEmail || '&mdash;') + '</td></tr>' +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0;vertical-align:top;">Address</td><td style="font-size:13px;color:#1a0a2e;padding:4px 0;line-height:1.5;">' + (buyerAddress || '&mdash;') + '</td></tr>' +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:4px 0;">Zone</td><td style="font-size:13px;color:#28103F;font-weight:700;padding:4px 0;">' + (selectedZone ? selectedZone.name : '&mdash;') + '</td></tr>' +
+        '</table>' +
+      '</div>' +
+
+      '<div style="background:#fff;padding:0 28px 4px;border-left:1px solid #ede8f5;border-right:1px solid #ede8f5;border-top:1px solid #f0ebf8;">' +
+        '<div style="font-size:10px;font-weight:700;color:#7a6a8a;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-top:16px;">Order Items</div>' +
+        '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' + ownerItemsRows + '</table>' +
+      '</div>' +
+
+      '<div style="background:#fff;padding:16px 28px 20px;border-left:1px solid #ede8f5;border-right:1px solid #ede8f5;border-top:1px solid #f0ebf8;">' +
+        '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
+          (discountAmount > 0 ? '<tr><td style="font-size:13px;color:#10b981;padding:3px 0;">Discount</td><td align="right" style="font-size:13px;color:#10b981;">-' + nairaSign + discountAmount.toLocaleString('en-NG') + '</td></tr>' : '') +
+          '<tr><td style="font-size:13px;color:#7a6a8a;padding:3px 0;">Delivery</td><td align="right" style="font-size:13px;color:#7a6a8a;">' + (deliveryFee === 0 ? 'Free' : nairaSign + deliveryFee.toLocaleString('en-NG')) + '</td></tr>' +
+          '<tr><td style="font-size:16px;font-weight:700;color:#28103F;padding-top:12px;border-top:2px solid #F64484;">Total Paid</td>' +
+              '<td align="right" style="font-size:16px;font-weight:700;color:#F64484;padding-top:12px;border-top:2px solid #F64484;">' + nairaSign + total.toLocaleString('en-NG') + '</td></tr>' +
+        '</table>' +
+      '</div>' +
+
+      '<div style="background:#28103F;border-radius:0 0 16px 16px;padding:16px 28px;text-align:center;">' +
+        '<a href="https://hairniqueng.com/admin.html" style="color:#0AF3BC;font-size:13px;font-weight:700;text-decoration:none;">View in Admin Panel &rarr;</a>' +
+      '</div>' +
+
+    '</div></body></html>';
+
+    var ownerKey = await getResendKey();
+    if (ownerKey) {
+      await fetch('https://hairniqueng.com/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: ownerEmails,
+          subject: 'New Order ' + orderNum + ' - ' + nairaSign + total.toLocaleString('en-NG') + ' from ' + (buyerName || 'Customer'),
+          html: ownerHtml,
+          resendKey: ownerKey
+        })
+      });
+      console.log('Owner notification sent to', ownerEmails.join(', '));
+    }
+  } catch(e) { console.log('Owner notification email failed:', e); }
   // 6. Clear cart + cancel any abandonment timer
   if (typeof _abandonmentTimer !== 'undefined' && _abandonmentTimer) clearTimeout(_abandonmentTimer);
   if (typeof _abandonmentFired !== 'undefined') _abandonmentFired = true;

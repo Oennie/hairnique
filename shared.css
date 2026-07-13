@@ -452,7 +452,7 @@ section { padding: 5rem 5%; }
   margin-left: .3rem;
 }
 .add-btn {
-  width: 34px; height: 34px;
+  width: 44px; height: 44px;
   background: var(--purple);
   color: var(--white);
   border: none;
@@ -462,6 +462,7 @@ section { padding: 5rem 5%; }
   align-items: center;
   justify-content: center;
   transition: background .18s, transform .18s;
+  touch-action: manipulation;
 }
 .add-btn:hover { background: var(--pink); transform: scale(1.08); }
 
@@ -536,7 +537,7 @@ section { padding: 5rem 5%; }
   padding: .38rem .55rem;
 }
 .qty-btn {
-  width: 28px; height: 28px;
+  width: 36px; height: 36px;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--white);
@@ -546,6 +547,7 @@ section { padding: 5rem 5%; }
   justify-content: center;
   cursor: pointer;
   transition: background .18s, color .18s;
+  touch-action: manipulation;
 }
 .qty-btn:hover { background: var(--purple); color: var(--white); border-color: var(--purple); }
 .qty-val { min-width: 24px; text-align: center; font-weight: 700; font-size: .9rem; }
@@ -923,7 +925,7 @@ footer {
   transform: translateX(-50%) translateY(100px);
   background: var(--purple);
   color: var(--white);
-  padding: .72rem 1.4rem;
+  padding: .75rem 1.2rem;
   border-radius: 100px;
   font-size: .86rem;
   font-weight: 600;
@@ -931,29 +933,42 @@ footer {
   transition: transform .28s cubic-bezier(.34,1.56,.64,1);
   box-shadow: var(--shadow-lg);
   pointer-events: none;
-  white-space: nowrap;
   max-width: 90vw;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 @media (max-width: 700px) {
   .toast {
-    white-space: normal;
+    flex-direction: column;
+    gap: .75rem;
     text-align: center;
-    border-radius: 12px;
-    line-height: 1.4;
-    padding: .85rem 1.25rem;
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+  }
+  .toast-actions {
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: .75rem;
   }
 }
 .toast.show {
   transform: translateX(-50%) translateY(0);
   pointer-events: all;
 }
+.toast-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 .toast-action {
-  margin-left: .55rem;
   color: var(--seafoam);
   font-weight: 700;
   text-decoration: none;
   pointer-events: all;
+  white-space: nowrap;
 }
 .toast-action:hover { text-decoration: underline; }
 
@@ -983,29 +998,119 @@ footer {
 .fade-up.visible { opacity: 1; transform: translateY(0); }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────────────── */
+/* ─── RESPONSIVE BREAKPOINTS ─── */
+
+/* Tablet */
 @media (max-width: 1024px) {
   .about-grid { gap: 2.5rem; }
   .community-grid, .contact-grid { gap: 2.5rem; }
 }
+
+/* Small tablet / large mobile */
 @media (max-width: 960px) {
   .about-grid,
   .community-grid,
   .contact-grid { grid-template-columns: 1fr; }
   .edu-card.featured { grid-column: span 1; grid-template-columns: 1fr; }
 }
+
+/* Mobile — nav collapses */
 @media (max-width: 768px) {
   .nav-links { display: none; }
   .ham { display: flex; }
   section { padding: 3.5rem 5%; }
   .edu-grid { grid-template-columns: 1fr; }
+
+  /* Quick-add modal — bottom sheet on mobile */
+  .pm-overlay {
+    align-items: flex-end;
+  }
+  .pm-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 22px 22px 0 0;
+    max-height: 92vh;
+  }
+  .pm-img {
+    aspect-ratio: 16/9;
+    max-height: 200px;
+    border-radius: 22px 22px 0 0;
+  }
+  .pm-body { padding: 1.1rem 1.2rem; }
+  .pm-name { font-size: 1.2rem; }
+  .pm-price { font-size: 1.4rem; }
+  .pm-footer {
+    flex-direction: column;
+    gap: .6rem;
+  }
+  .pm-footer > * { width: 100%; }
+  .pm-qty {
+    justify-content: center;
+  }
+  .pm-add-btn { padding: .9rem; font-size: 1rem; }
+
+  /* Cart drawer — full width on mobile */
+  .cart-drawer { width: 100vw; }
+
+  /* Footer nav cols — stack on mobile */
+  .footer-nav-cols {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .footer-col {
+    grid-template-columns: 1fr 1fr;
+    justify-items: center;
+    text-align: center;
+  }
 }
+
+/* Small mobile */
 @media (max-width: 480px) {
   .products-grid { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
-  .hero { padding: 6rem 5% 3rem; }
-  .hero h1 { font-size: 2.4rem; }
+
+  /* Hero section */
+  .hero { padding: 6rem 4% 3rem; }
+  .hero h1 { font-size: 2.2rem; }
+  .hero-sub { font-size: .9rem; }
   .hero-actions { flex-direction: column; }
   .btn-primary, .btn-ghost { width: 100%; justify-content: center; }
+
+  /* Product cards — tighter on very small screens */
+  .product-name { font-size: .88rem; }
+  .product-body { padding: .7rem .75rem .85rem; }
+  /* Don't shrink add-btn — keep minimum tap target */
+
+  /* Section titles + spacing */
+  h2 { font-size: 1.55rem; }
+  section { padding: 2.5rem 4%; }
+
+  /* Marquee — smaller text */
+  .mq-item { font-size: .72rem; padding: 0 1.2rem; }
+
+  /* Toast — push up above mobile browser chrome */
+  .toast { bottom: 5rem; }
+
+  /* Nav cart button — shorter on tiny screens */
+  .cart-btn { padding: .45rem .85rem; font-size: .82rem; }
+
+  /* Quick-add modal: hide long desc to save space */
+  .pm-desc { display: none; }
+
+  /* Step indicator text tighter */
+  .ck-steps { font-size: .72rem; }
+  .ck-sep { margin: 0 .3rem; }
+
+  /* Footer links single column on tiny phones */
+  .footer-col { grid-template-columns: 1fr; column-gap: 0; row-gap: .5rem; }
+
+  /* Hero sub text */
+  .hero-sub { font-size: .9rem; }
+
+  /* Reduce hero h1 further on very small phones */
+  .hero h1 { font-size: 2rem; }
 }
+
 
 /* ── SKIP NAVIGATION ─────────────────────────────────────────── */
 .skip-link {
@@ -1130,8 +1235,8 @@ footer {
   gap: .4rem;
 }
 .ci-qty-btn {
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
   border: 1.5px solid rgba(40,16,63,.15);
   border-radius: 7px;
   background: #fff;
@@ -1142,6 +1247,7 @@ footer {
   align-items: center;
   justify-content: center;
   transition: all .15s;
+  touch-action: manipulation;
 }
 .ci-qty-btn:hover { border-color: #28103F; background: #28103F; color: #fff; }
 .ci-qty-val { font-size: .85rem; font-weight: 600; min-width: 20px; text-align: center; }
@@ -1230,3 +1336,45 @@ footer {
   margin-top: .75rem;
 }
 .checkout-btn:hover { background: #d42f6d; transform: translateY(-1px); }
+
+/* ── SAFE AREA INSETS (iOS notch/home indicator) ─────────────────── */
+nav#mainNav {
+  padding-top: max(.85rem, env(safe-area-inset-top, .85rem));
+}
+.cart-foot {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+.mob-nav {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.toast {
+  bottom: max(1.5rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
+}
+
+/* ── HERO BLOBS — reduce on mobile for performance ────────────────── */
+@media (max-width: 768px) {
+  .hero-blob-1 { width: 260px; height: 260px; top: -80px; }
+  .hero-blob-2 { width: 180px; height: 180px; bottom: -40px; }
+  .community-grid, .contact-grid { gap: 1.5rem; }
+}
+
+/* ── TOUCH TARGETS — interactive elements ─────────────────────────── */
+.variant-btn, .tab, .filter-btn {
+  touch-action: manipulation;
+}
+.variant-btn {
+  min-height: 38px; /* slightly larger tap area on mobile */
+}
+.pm-add-btn {
+  touch-action: manipulation;
+}
+
+/* ── REDUCED MOTION ────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .hero::before { animation: none; }
+  .product-card, .edu-card, .social-card, .contact-method {
+    transition: none;
+  }
+}

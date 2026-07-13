@@ -36,13 +36,47 @@
 .pd-image {
   position: sticky;
   top: calc(64px + 1.5rem);
+  /* no overflow:hidden or aspect-ratio here — let inner elements control it */
+  background: transparent;
+}
+/* Large main image frame */
+.pd-gallery-main {
+  width: 100%;
   aspect-ratio: 1;
   border-radius: 22px;
   overflow: hidden;
   background: var(--light);
   box-shadow: 0 8px 40px rgba(40,16,63,.1);
+  margin-bottom: .75rem;
 }
-.pd-image img { width: 100%; height: 100%; object-fit: cover; }
+.pd-gallery-main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity .2s ease;
+}
+/* Thumbnail strip */
+.pd-thumb-strip {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.pd-thumb {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 2.5px solid var(--border);
+  background: none;
+  transition: border-color .2s, transform .15s;
+}
+.pd-thumb:hover { transform: scale(1.06); }
+.pd-thumb.active { border-color: var(--purple); }
+.pd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
 .pd-emoji {
   width: 100%; height: 100%;
   display: flex;
@@ -120,6 +154,35 @@
   .product-detail-grid { grid-template-columns: 1fr; gap: 2rem; }
   .pd-image { position: static; }
   .pd-name { font-size: 1.7rem; }
+  /* Gallery thumbnail strip — horizontal scroll on narrow screens */
+  .pd-thumb-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: .25rem;
+  }
+  .pd-thumb { flex-shrink: 0; }
+  /* Qty row stacks nicely */
+  .pd-qty-row { flex-wrap: wrap; }
+  .pd-add-btn { min-width: 0; }
+  /* Related grid — 2 col */
+  .related-section .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .pd-name { font-size: 1.45rem; }
+  .pd-price { font-size: 1.65rem; }
+  .product-page { padding: calc(64px + 1rem) 4% 3rem; }
+  .pd-add-btn { font-size: .9rem; padding: .85rem 1rem; }
+  /* Breadcrumb — truncate on tiny screens */
+  .breadcrumb { font-size: .72rem; }
+  /* Related grid — 2 col tight */
+  .related-section .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: .65rem;
+  }
 }
 </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -422,7 +485,7 @@ function pdAddToCart() {
     product_name: currentProduct.name,
     variant_label: v.label,
     retail_price: v.retail_price,
-    image_url: currentProduct.image_url,
+    image_url: currentProduct.images && (typeof currentProduct.images==="string"?JSON.parse(currentProduct.images):currentProduct.images).length ? (typeof currentProduct.images==="string"?JSON.parse(currentProduct.images):currentProduct.images)[0] : currentProduct.image_url,
     emoji: currentProduct.emoji,
     qty: selectedQty
   });
@@ -453,7 +516,7 @@ async function loadRelated(currentId, category) {
       var prices = activeV.map(function(v) { return v.retail_price; }).filter(function(x) { return x != null && x >= 0; });
       var minPrice = prices.length ? Math.min.apply(null, prices) : 0;
       var priceStr = prices.length > 1 ? 'from ' + fmt(minPrice) : fmt(minPrice);
-      var imgHtml = renderProductImg(p.name, p.category, p.image_url, p.emoji);
+      var imgHtml = renderProductImg(p.name, p.category, (p.images && (typeof p.images==="string"?JSON.parse(p.images):p.images).length ? (typeof p.images==="string"?JSON.parse(p.images):p.images)[0] : p.image_url), p.emoji);
       return '<div class="product-card" onclick="window.location.href=\'product.html?id=' + esc(p.id) + '\'" role="button" tabindex="0">' +
         '<div class="product-img">' + imgHtml + '</div>' +
         '<div class="product-body">' +
@@ -540,8 +603,7 @@ function switchProductImage(url, btn) {
       Continue Shopping
     </button>
   </div>
-</div>
-<script>
+</div><script>
 function renderProductImages(product) {
   const container = document.getElementById('productImageGallery')
   if (!container) {
@@ -549,66 +611,53 @@ function renderProductImages(product) {
     return
   }
 
-  // Build images array — use images column, fall back to image_url, fall back to emoji
+  // Build images array — parse if stringified JSON, deduplicate vs image_url
+  let pImages = product.images
+  if (typeof pImages === 'string') {
+    try { pImages = JSON.parse(pImages) } catch(e) { pImages = null }
+  }
   let images = []
-  if (product.images && Array.isArray(product.images) && product.images.length > 0) {
-    images = product.images
-  } else if (product.image_url) {
-    images = [product.image_url]
+  if (pImages && Array.isArray(pImages) && pImages.length > 0) {
+    images = pImages.filter(Boolean)
+  }
+  // Include image_url only if not already present
+  if (product.image_url && !images.includes(product.image_url)) {
+    images.push(product.image_url)
   }
 
-  console.log('Rendering images:', images)
+  console.log('Gallery images (' + images.length + '):', images)
 
   if (!images.length) {
-    // No images — show emoji placeholder
     container.innerHTML = `
-      <div style="aspect-ratio:1;background:linear-gradient(135deg,#F4EEF9,#e8dcf5);
-        border-radius:16px;display:flex;align-items:center;
-        justify-content:center;font-size:6rem;">
+      <div class="pd-gallery-main" style="background:linear-gradient(135deg,#F4EEF9,#e8dcf5);
+        display:flex;align-items:center;justify-content:center;font-size:6rem;">
         ${product.emoji || '🧴'}
       </div>`
     return
   }
 
-  // Single image — no thumbnail strip
-  if (images.length === 1) {
-    container.innerHTML = `
-      <div style="aspect-ratio:1;overflow:hidden;border-radius:16px;background:#F4EEF9;">
-        <img id="mainProductImg"
-          src="${images[0]}"
-          alt="${product.name}"
-          style="width:100%;height:100%;object-fit:cover;"
-          loading="eager">
+  const thumbsHtml = images.length > 1
+    ? `<div class="pd-thumb-strip">
+        ${images.map((url, i) => `
+          <button type="button"
+            class="pd-thumb${i === 0 ? ' active' : ''}"
+            onclick="switchProductImage('${url}', this)"
+            aria-label="View image ${i + 1}">
+            <img src="${url}"
+              alt="${product.name} view ${i + 1}"
+              loading="lazy">
+          </button>`).join('')}
       </div>`
-    return
-  }
+    : ''
 
-  // Multiple images — main image + thumbnail strip
   container.innerHTML = `
-    <div style="aspect-ratio:1;overflow:hidden;border-radius:16px;
-      background:#F4EEF9;margin-bottom:.75rem;">
+    <div class="pd-gallery-main">
       <img id="mainProductImg"
         src="${images[0]}"
         alt="${product.name}"
-        style="width:100%;height:100%;object-fit:cover;
-        transition:opacity .2s ease;"
         loading="eager">
     </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-      ${images.map((url, i) => `
-        <button type="button"
-          onclick="switchProductImage('${url}', this)"
-          style="width:68px;height:68px;border-radius:10px;
-          overflow:hidden;padding:0;cursor:pointer;flex-shrink:0;
-          border:2.5px solid ${i === 0 ? 'var(--purple)' : 'var(--border)'};
-          background:none;transition:border-color .2s;"
-          aria-label="View image ${i + 1}">
-          <img src="${url}"
-            alt="${product.name} view ${i + 1}"
-            style="width:100%;height:100%;object-fit:cover;"
-            loading="lazy">
-        </button>`).join('')}
-    </div>`
+    ${thumbsHtml}`
 }
 
 function switchProductImage(url, btn) {
@@ -620,11 +669,10 @@ function switchProductImage(url, btn) {
       main.style.opacity = '1'
     }, 150)
   }
-  document.querySelectorAll('[onclick*="switchProductImage"]').forEach(b => {
-    b.style.borderColor = 'var(--border)'
-  })
-  if (btn) btn.style.borderColor = 'var(--purple)'
+  document.querySelectorAll('.pd-thumb').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
 }
 </script>
 </body>
-</html>
+
+
