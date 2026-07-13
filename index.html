@@ -520,7 +520,7 @@ async function loadFeatured() {
       var minPrice = prices.length ? Math.min.apply(null, prices) : 0;
       var priceStr = prices.length > 1 ? 'from ' + fmt(minPrice) : fmt(minPrice);
       var hasSale = activeV.some(function(v) { return v.compare_at_price && v.compare_at_price > v.retail_price; });
-      var imgHtml = renderProductImg(p.name, p.category, p.image_url, p.emoji);
+      var imgHtml = renderProductImg(p.name, p.category, (p.images && (typeof p.images==="string"?JSON.parse(p.images):p.images).length ? (typeof p.images==="string"?JSON.parse(p.images):p.images)[0] : p.image_url), p.emoji);
 
       return '<div class="product-card" onclick="window.location.href=\'product.html?id=' + esc(p.id) + '\'" role="button" tabindex="0" aria-label="' + esc(p.name) + '">' +
         '<div class="product-img">' +
@@ -588,3 +588,5 @@ function handleContact(e) {
 </div>
 </body>
 </html>
+
+
