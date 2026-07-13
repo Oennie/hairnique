@@ -1,23 +1,34 @@
 export default async function handler(req, res) {
-  // Only allow POST
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  // CORS headers — allow your domain only
+  // Handle CORS preflight
   res.setHeader('Access-Control-Allow-Origin', 'https://hairniqueng.com')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
-  // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.status(200).end()
   }
 
-  const { to, subject, html, resendKey } = req.body
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const { to, subject, html, resendKey, bcc } = req.body
 
   if (!to || !subject || !html || !resendKey) {
     return res.status(400).json({ error: 'Missing required fields: to, subject, html, resendKey' })
+  }
+
+  // Build payload
+  const payload = {
+    from: 'Hairnique <orders@contact.hairniqueng.com>',
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html
+  }
+
+  // Optional BCC (used for owner notification copies)
+  if (bcc) {
+    payload.bcc = Array.isArray(bcc) ? bcc : [bcc]
   }
 
   try {
@@ -27,12 +38,7 @@ export default async function handler(req, res) {
         'Authorization': 'Bearer ' + resendKey,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        from: 'Hairnique <orders@contact.hairniqueng.com>',
-        to: Array.isArray(to) ? to : [to],
-        subject,
-        html
-      })
+      body: JSON.stringify(payload)
     })
 
     const data = await response.json()
