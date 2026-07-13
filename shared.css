@@ -922,7 +922,7 @@ footer {
   position: fixed;
   bottom: 1.5rem;
   left: 50%;
-  transform: translateX(-50%) translateY(100px);
+  transform: translateX(-50%) translateY(200%);
   background: var(--purple);
   color: var(--white);
   padding: .75rem 1.2rem;
@@ -930,9 +930,10 @@ footer {
   font-size: .86rem;
   font-weight: 600;
   z-index: 500;
-  transition: transform .28s cubic-bezier(.34,1.56,.64,1);
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), visibility 0s .28s;
   box-shadow: var(--shadow-lg);
   pointer-events: none;
+  visibility: hidden;
   max-width: 90vw;
   display: flex;
   align-items: center;
@@ -957,6 +958,8 @@ footer {
 .toast.show {
   transform: translateX(-50%) translateY(0);
   pointer-events: all;
+  visibility: visible;
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), visibility 0s 0s;
 }
 .toast-actions {
   display: flex;
