@@ -1590,7 +1590,7 @@ async function updateStatus(id,status,el,phone,name,orderNum,email){
             order_number: orderNum,
             customer_address: ord ? ord.customer_address || '' : '',
             delivery_zone: ord ? ord.delivery_zone || '' : '',
-            estimated_delivery: 'Within 1–3 business days',
+            estimated_delivery: 'Within 2-7 business days',
           }).catch(()=>{});
         });
     }
