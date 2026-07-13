@@ -1055,16 +1055,23 @@ footer {
   /* Cart drawer — full width on mobile */
   .cart-drawer { width: 100vw; }
 
-  /* Footer nav cols — stack on mobile */
+  /* Footer: Explore + Legal side by side in 2 columns */
   .footer-nav-cols {
-    flex-direction: column;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 1.5rem;
+    width: 100%;
   }
   .footer-col {
-    grid-template-columns: 1fr 1fr;
-    justify-items: center;
-    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .6rem;
+    text-align: left;
+    grid-template-columns: unset;
+  }
+  .footer-col-label {
+    grid-column: unset;
   }
 }
 
@@ -1104,8 +1111,10 @@ footer {
   .ck-steps { font-size: .72rem; }
   .ck-sep { margin: 0 .3rem; }
 
-  /* Footer links single column on tiny phones */
-  .footer-col { grid-template-columns: 1fr; column-gap: 0; row-gap: .5rem; }
+  /* Footer - keep 2 columns on tiny phones too */
+  .footer-nav-cols { gap: 1rem; }
+  .footer-col { gap: .45rem; }
+  .footer-col a { font-size: .8rem; }
 
   /* Hero sub text */
   .hero-sub { font-size: .9rem; }
